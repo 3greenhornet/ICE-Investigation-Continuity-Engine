@@ -10,6 +10,7 @@ def test_repointel_client_initialization():
     # Should initialize without crashing even if db path is mocked or auto-detected
     assert hasattr(client, "is_available")
     assert hasattr(client, "search_symbols")
+    assert hasattr(client, "search_code")
     assert hasattr(client, "check_goal_code_maturity")
 
 
@@ -19,6 +20,8 @@ def test_goal_maturity_mock_fallback():
     assert isinstance(assessment, CodeMaturityAssessment)
     assert assessment.goal_id == "g1"
     assert assessment.suggested_maturity == "no_candidate"
+    # search_code on empty should return empty list without crashing
+    assert client.search_code("test_query") == []
 
 
 @pytest.mark.asyncio
@@ -38,4 +41,7 @@ async def test_mcp_server_tools_list():
     tool_names = [t["name"] for t in tools]
     assert "ice_create_goal" in tool_names
     assert "ice_verify_code_maturity" in tool_names
+    assert "ice_repointel_search_code" in tool_names
+    assert "ice_repointel_callers" in tool_names
+    assert "ice_repointel_architecture" in tool_names
     assert "ice_suggest_next" in tool_names

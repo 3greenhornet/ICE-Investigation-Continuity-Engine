@@ -164,6 +164,39 @@ TOOLS = [
             },
             "required": ["case_id", "content"]
         }
+    },
+    {
+        "name": "ice_repointel_search_code",
+        "description": "Search code implementations and documentation chunks in RepoIntel knowledge base.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "query": {"type": "string"},
+                "limit": {"type": "integer", "default": 5}
+            },
+            "required": ["query"]
+        }
+    },
+    {
+        "name": "ice_repointel_callers",
+        "description": "Look up callers and references for a function or class symbol in RepoIntel call graph.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "symbol": {"type": "string"}
+            },
+            "required": ["symbol"]
+        }
+    },
+    {
+        "name": "ice_repointel_architecture",
+        "description": "Get repository architecture overview (file count, symbol counts, call edges, top hubs).",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "repo_id": {"type": "string"}
+            }
+        }
     }
 ]
 
@@ -190,6 +223,21 @@ async def execute_tool(name: str, arguments: dict) -> dict:
             return {
                 "content": [{"type": "text", "text": json.dumps(assessment.__dict__, indent=2)}]
             }
+
+        if name == "ice_repointel_search_code":
+            client = RepoIntelClient()
+            hits = client.search_code(arguments["query"], limit=arguments.get("limit", 5))
+            return {"content": [{"type": "text", "text": json.dumps(hits, indent=2)}]}
+
+        if name == "ice_repointel_callers":
+            client = RepoIntelClient()
+            callers = client.get_callers(arguments["symbol"])
+            return {"content": [{"type": "text", "text": json.dumps(callers, indent=2)}]}
+
+        if name == "ice_repointel_architecture":
+            client = RepoIntelClient()
+            arch = client.get_architecture(repo_id=arguments.get("repo_id"))
+            return {"content": [{"type": "text", "text": json.dumps(arch, indent=2)}]}
 
         if name == "ice_create_goal":
             from case_engine.goals import create_goal

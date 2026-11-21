@@ -17,7 +17,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.errors import register_exception_handlers
 from app.routes import (
     actions, cases, claims, contradictions, decisions, evidence, gaps,
-    goals, health, hypotheses, investigation, reasoning, replay,
+    goals, health, hypotheses, investigation, reasoning, repointel, replay,
 )
 from db.connection import close_db, init_db
 
@@ -68,4 +68,6 @@ app.include_router(reasoning.router, prefix=PREFIX, tags=["reasoning"])
 # Model (goals, clarity, provenance, maturity, reconciliation, intent
 # profile) + STORM-lite research mode.
 app.include_router(goals.router, prefix=PREFIX, tags=["goals"])
+# RepoIntel domain integration: selective AST, call graph, and maturity checks
+app.include_router(repointel.router, prefix=f"{PREFIX}/repointel", tags=["repointel"])
 app.include_router(health.router, prefix=PREFIX, tags=["health"])

@@ -583,6 +583,31 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("case_id")
     p.add_argument("--max-gaps", type=int, default=6)
 
+    # ---- repointel group (RepoIntel AST, call graph, and maturity checks) ----
+    rp = sub.add_parser("repointel")
+    rp_sub = rp.add_subparsers(dest="cmd", required=True)
+
+    p = rp_sub.add_parser("status")
+
+    p = rp_sub.add_parser("arch")
+    p.add_argument("--repo-id", default=None)
+
+    p = rp_sub.add_parser("symbols")
+    p.add_argument("query")
+    p.add_argument("--limit", type=int, default=10)
+
+    p = rp_sub.add_parser("callers")
+    p.add_argument("symbol")
+
+    p = rp_sub.add_parser("code")
+    p.add_argument("query")
+    p.add_argument("--limit", type=int, default=5)
+
+    p = rp_sub.add_parser("maturity")
+    p.add_argument("statement")
+    p.add_argument("--goal-id", default="g_cli")
+    p.add_argument("--kind", default="goal")
+
     return parser
 
 
@@ -1406,6 +1431,41 @@ async def _dispatch_research(args, parser) -> int:
 
 
 # ---------------------------------------------------------------------------
+# RepoIntel group (AST, call graph, and maturity checks)
+# ---------------------------------------------------------------------------
+
+async def _dispatch_repointel(args, parser) -> int:
+    from case_engine.repointel_client import RepoIntelClient
+    client = RepoIntelClient()
+
+    if args.cmd == "status":
+        result = {
+            "connected": client.is_available,
+            "database_path": client.db_path,
+            "repositories": client.list_repositories() if client.is_available else [],
+        }
+    elif args.cmd == "arch":
+        result = client.get_architecture(repo_id=args.repo_id)
+    elif args.cmd == "symbols":
+        result = [s.__dict__ for s in client.search_symbols(args.query, limit=args.limit)]
+    elif args.cmd == "callers":
+        result = client.get_callers(args.symbol)
+    elif args.cmd == "code":
+        result = client.search_code(args.query, limit=args.limit)
+    elif args.cmd == "maturity":
+        assessment = client.check_goal_code_maturity(
+            goal_id=args.goal_id, statement=args.statement, target_kind=args.kind
+        )
+        result = assessment.__dict__
+    else:
+        parser.error("Unknown command")
+        return 2
+
+    print(_dump_json(result))
+    return 0
+
+
+# ---------------------------------------------------------------------------
 # Dispatch + entry point
 # ---------------------------------------------------------------------------
 
@@ -1425,6 +1485,7 @@ _DISPATCHERS = {
     "benchmark": _dispatch_benchmark,
     "goals": _dispatch_goals,
     "research": _dispatch_research,
+    "repointel": _dispatch_repointel,
 }
 
 

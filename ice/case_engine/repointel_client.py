@@ -184,6 +184,57 @@ class RepoIntelClient:
     # 2. Granular Symbol & Graph Retrieval
     # -----------------------------------------------------------------------
 
+    def search_code(self, query: str, repo_id: Optional[str] = None, limit: int = 5) -> List[Dict[str, Any]]:
+        """Search code implementations in nodes and documentation in documents."""
+        conn = self._get_connection()
+        if not conn:
+            return []
+        try:
+            cur = conn.cursor()
+            pattern = f"%{query}%"
+            cur.execute(
+                """
+                SELECT id, qualified_name, entity_type, file_path, source_code
+                FROM nodes
+                WHERE source_code LIKE ? OR qualified_name LIKE ?
+                LIMIT ?
+                """,
+                (pattern, pattern, limit),
+            )
+            hits: List[Dict[str, Any]] = []
+            for r in cur.fetchall():
+                hits.append({
+                    "id": r[0],
+                    "symbol": r[1],
+                    "entity_type": r[2],
+                    "file_path": r[3],
+                    "snippet": (r[4] or "")[:350],
+                    "source": "ast_node",
+                })
+            # Search documents if space permits
+            if len(hits) < limit:
+                cur.execute(
+                    """
+                    SELECT id, file_path, doc_type, content
+                    FROM documents
+                    WHERE content LIKE ?
+                    LIMIT ?
+                    """,
+                    (pattern, limit - len(hits)),
+                )
+                for r in cur.fetchall():
+                    hits.append({
+                        "id": r[0],
+                        "symbol": r[1],
+                        "entity_type": r[2],
+                        "file_path": r[1],
+                        "snippet": (r[3] or "")[:350],
+                        "source": "document",
+                    })
+            return hits
+        finally:
+            conn.close()
+
     def search_symbols(self, query: str, limit: int = 10) -> List[CodeSymbol]:
         """Search AST nodes (functions, classes, methods) matching a query."""
         conn = self._get_connection()
