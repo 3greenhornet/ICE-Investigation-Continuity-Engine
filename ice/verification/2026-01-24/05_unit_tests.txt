@@ -1,0 +1,225 @@
+# Unit test suite — sandbox run 2026-10-24T05:58:10+00:00
+
+Command (doc Part 4 §6.2, adapted to run on the host Python since there
+is no api container): python3 -m pytest tests/unit/ -m unit -v --tb=short
+
+## Test file inventory
+tests/unit/test_case.py
+tests/unit/test_claim_normalize.py
+tests/unit/test_contradiction_scope.py
+tests/unit/test_contradiction_temporal.py
+tests/unit/test_decision_rules.py
+tests/unit/test_evidence_classify.py
+tests/unit/test_hypothesis_normalize.py
+tests/unit/test_information_gap_priority.py
+tests/unit/test_investigation_thread_debt.py
+tests/unit/test_llm.py
+tests/unit/test_next_best_action_formula.py
+
+Total: 11 files (target: >=11)
+
+## pytest tests/unit/ -m unit -v
+
+```
+============================= test session starts ==============================
+platform linux -- Python 3.12.15, pytest-9.0.2, pluggy-1.6.0 -- /home/z/.venv/bin/python3
+cachedir: .pytest_cache
+metadata: {'Python': '3.12.15', 'Platform': 'Linux-5.10.134-013.15.kangaroo.al8.x86_64-x86_64-with-glibc2.41', 'Packages': {'pytest': '9.0.2', 'pluggy': '1.6.0'}, 'Plugins': {'Faker': '40.1.2', 'metadata': '3.1.1', 'asyncio': '1.3.0', 'ddtrace': '4.2.2', 'cov': '7.0.0', 'json-report': '1.5.0', 'anyio': '4.13.0'}}
+rootdir: /home/z/my-project/hari
+configfile: pytest.ini (WARNING: ignoring pytest config in pyproject.toml!)
+plugins: Faker-40.1.2, metadata-3.1.1, asyncio-1.3.0, ddtrace-4.2.2, cov-7.0.0, json-report-1.5.0, anyio-4.13.0
+asyncio: mode=Mode.AUTO, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collecting ... collected 153 items
+
+tests/unit/test_case.py::TestCreateCaseValidation::test_create_case_empty_title_raises PASSED [  0%]
+tests/unit/test_case.py::TestCreateCaseValidation::test_create_case_empty_objective_raises PASSED [  1%]
+tests/unit/test_case.py::TestCreateCaseValidation::test_create_case_invalid_confidence_raises PASSED [  1%]
+tests/unit/test_case.py::TestCreateCaseValidation::test_create_case_invalid_case_type_raises PASSED [  2%]
+tests/unit/test_case.py::TestCreateCaseValidation::test_create_case_invalid_budgets_raise PASSED [  3%]
+tests/unit/test_case.py::TestCreateCaseWrites::test_create_case_valid PASSED [  3%]
+tests/unit/test_case.py::TestCreateCaseWrites::test_create_case_naive_deadline_promoted_to_utc PASSED [  4%]
+tests/unit/test_case.py::TestCreateCaseWrites::test_create_case_aware_deadline_untouched PASSED [  5%]
+tests/unit/test_case.py::TestCreateCaseWrites::test_create_case_required_confidence_debug_defaults_0_85 PASSED [  5%]
+tests/unit/test_case.py::TestCreateCaseWrites::test_create_case_required_confidence_research_defaults_0 PASSED [  6%]
+tests/unit/test_case.py::TestCreateCaseWrites::test_create_case_required_confidence_explore_defaults_0 PASSED [  7%]
+tests/unit/test_case.py::TestCreateCaseWrites::test_create_case_explicit_confidence_wins PASSED [  7%]
+tests/unit/test_case.py::TestCreateCaseWrites::test_create_case_case_type_persisted PASSED [  8%]
+tests/unit/test_case.py::TestCaseReadsAndStatus::test_get_case_empty_id_raises PASSED [  9%]
+tests/unit/test_case.py::TestCaseReadsAndStatus::test_get_case_missing_raises_not_found PASSED [  9%]
+tests/unit/test_case.py::TestCaseReadsAndStatus::test_update_case_status_invalid_raises_pre_db PASSED [ 10%]
+tests/unit/test_case.py::TestCaseReadsAndStatus::test_update_case_status_valid_transition PASSED [ 11%]
+tests/unit/test_case.py::TestCaseReadsAndStatus::test_update_case_status_idempotent_no_event PASSED [ 11%]
+tests/unit/test_case.py::TestCaseReadsAndStatus::test_list_cases_invalid_limit_raises PASSED [ 12%]
+tests/unit/test_case.py::TestCaseReadsAndStatus::test_list_cases_invalid_status_raises PASSED [ 13%]
+tests/unit/test_case.py::TestCaseReadsAndStatus::test_list_cases_invalid_case_type_raises PASSED [ 13%]
+tests/unit/test_claim_normalize.py::TestTokenizeStatement::test_tokenize_lowercases PASSED [ 14%]
+tests/unit/test_claim_normalize.py::TestTokenizeStatement::test_tokenize_strips_punctuation PASSED [ 15%]
+tests/unit/test_claim_normalize.py::TestTokenizeStatement::test_tokenize_collapses_whitespace PASSED [ 15%]
+tests/unit/test_claim_normalize.py::TestTokenizeStatement::test_tokenize_removes_stopwords PASSED [ 16%]
+tests/unit/test_claim_normalize.py::TestTokenizeStatement::test_tokenize_empty_returns_empty_set PASSED [ 16%]
+tests/unit/test_claim_normalize.py::TestTokenizeStatement::test_tokenize_punctuation_only_returns_empty_set PASSED [ 17%]
+tests/unit/test_claim_normalize.py::TestTokenizeStatement::test_tokenize_keeps_digits PASSED [ 18%]
+tests/unit/test_claim_normalize.py::TestStatementOverlap::test_overlap_identical_is_one PASSED [ 18%]
+tests/unit/test_claim_normalize.py::TestStatementOverlap::test_overlap_disjoint_is_zero PASSED [ 19%]
+tests/unit/test_claim_normalize.py::TestStatementOverlap::test_statement_overlap_jaccard PASSED [ 20%]
+tests/unit/test_claim_normalize.py::TestStatementOverlap::test_overlap_half_shared_is_half PASSED [ 20%]
+tests/unit/test_claim_normalize.py::TestStatementOverlap::test_overlap_both_empty_is_zero PASSED [ 21%]
+tests/unit/test_claim_normalize.py::TestStatementOverlap::test_overlap_one_empty_is_zero PASSED [ 22%]
+tests/unit/test_claim_normalize.py::TestStatementOverlap::test_overlap_is_symmetric PASSED [ 22%]
+tests/unit/test_claim_normalize.py::TestStatementOverlap::test_overlap_punctuation_and_case_insensitive_end_to_end PASSED [ 23%]
+tests/unit/test_claim_normalize.py::TestStatementOverlap::test_overlap_meets_candidate_threshold_for_contradiction_pair PASSED [ 24%]
+tests/unit/test_contradiction_scope.py::TestScopeCompatibility::test_both_scopes_none_is_compatible PASSED [ 24%]
+tests/unit/test_contradiction_scope.py::TestScopeCompatibility::test_both_scopes_empty_is_compatible PASSED [ 25%]
+tests/unit/test_contradiction_scope.py::TestScopeCompatibility::test_one_scope_none_is_compatible PASSED [ 26%]
+tests/unit/test_contradiction_scope.py::TestScopeCompatibility::test_same_scalar_value_compatible PASSED [ 26%]
+tests/unit/test_contradiction_scope.py::TestScopeCompatibility::test_different_scalar_value_incompatible PASSED [ 27%]
+tests/unit/test_contradiction_scope.py::TestScopeCompatibility::test_overlapping_lists_compatible PASSED [ 28%]
+tests/unit/test_contradiction_scope.py::TestScopeCompatibility::test_disjoint_lists_incompatible PASSED [ 28%]
+tests/unit/test_contradiction_scope.py::TestScopeCompatibility::test_multiple_keys_all_must_be_compatible PASSED [ 29%]
+tests/unit/test_contradiction_scope.py::TestScopeCompatibility::test_multiple_keys_overlapping_compatible PASSED [ 30%]
+tests/unit/test_contradiction_scope.py::TestScopeCompatibility::test_scalar_overlapping_with_list_compatible PASSED [ 30%]
+tests/unit/test_contradiction_scope.py::TestScopeCompatibility::test_scalar_disjoint_with_list_incompatible PASSED [ 31%]
+tests/unit/test_contradiction_temporal.py::TestTemporalCompatibility::test_both_unbounded_compatible PASSED [ 32%]
+tests/unit/test_contradiction_temporal.py::TestTemporalCompatibility::test_one_unbounded_compatible PASSED [ 32%]
+tests/unit/test_contradiction_temporal.py::TestTemporalCompatibility::test_overlapping_ranges_compatible PASSED [ 33%]
+tests/unit/test_contradiction_temporal.py::TestTemporalCompatibility::test_touching_boundary_compatible PASSED [ 33%]
+tests/unit/test_contradiction_temporal.py::TestTemporalCompatibility::test_disjoint_ranges_incompatible PASSED [ 34%]
+tests/unit/test_contradiction_temporal.py::TestTemporalCompatibility::test_only_start_bound_before_other_start_compatible PASSED [ 35%]
+tests/unit/test_contradiction_temporal.py::TestTemporalCompatibility::test_only_end_bound_before_other_end_compatible PASSED [ 35%]
+tests/unit/test_contradiction_temporal.py::TestTemporalCompatibility::test_disjoint_reversed_order_incompatible PASSED [ 36%]
+tests/unit/test_contradiction_temporal.py::TestTemporalCompatibility::test_both_bounds_on_one_side_only_compatible PASSED [ 37%]
+tests/unit/test_decision_rules.py::TestDecideDebugLadder::test_decide_no_hypotheses_returns_abstain PASSED [ 37%]
+tests/unit/test_decision_rules.py::TestDecideDebugLadder::test_decide_no_leading_returns_abstain PASSED [ 38%]
+tests/unit/test_decision_rules.py::TestDecideDebugLadder::test_decide_high_confidence_no_contradictions_returns_act PASSED [ 39%]
+tests/unit/test_decision_rules.py::TestDecideDebugLadder::test_decide_high_confidence_with_decision_critical_returns_investigate PASSED [ 39%]
+tests/unit/test_decision_rules.py::TestDecideDebugLadder::test_decide_low_confidence_no_actions_returns_abstain PASSED [ 40%]
+tests/unit/test_decision_rules.py::TestDecideDebugLadder::test_decide_low_confidence_best_priority_below_threshold_returns_abstain PASSED [ 41%]
+tests/unit/test_decision_rules.py::TestDecideDebugLadder::test_decide_low_confidence_best_priority_above_threshold_returns_investigate PASSED [ 41%]
+tests/unit/test_decision_rules.py::TestDecideDebugLadder::test_decide_all_priorities_fail_returns_abstain PASSED [ 42%]
+tests/unit/test_decision_rules.py::TestDecideResearchMode::test_decide_research_no_hypotheses_returns_investigate PASSED [ 43%]
+tests/unit/test_decision_rules.py::TestDecideResearchMode::test_decide_research_active_contradiction_returns_investigate PASSED [ 43%]
+tests/unit/test_decision_rules.py::TestDecideResearchMode::test_decide_research_high_priority_gap_returns_investigate PASSED [ 44%]
+tests/unit/test_decision_rules.py::TestDecideResearchMode::test_decide_research_no_contradictions_no_gaps_returns_act PASSED [ 45%]
+tests/unit/test_decision_rules.py::TestDecideExploreMode::test_decide_explore_always_investigate_no_hypotheses PASSED [ 45%]
+tests/unit/test_decision_rules.py::TestDecideExploreMode::test_decide_explore_always_investigate_with_hypotheses PASSED [ 46%]
+tests/unit/test_evidence_classify.py::TestClassifyEvidenceType::test_classify_measurement_latency PASSED [ 47%]
+tests/unit/test_evidence_classify.py::TestClassifyEvidenceType::test_classify_measurement_percent PASSED [ 47%]
+tests/unit/test_evidence_classify.py::TestClassifyEvidenceType::test_classify_observation_first_person PASSED [ 48%]
+tests/unit/test_evidence_classify.py::TestClassifyEvidenceType::test_classify_document_claim_according_to PASSED [ 49%]
+tests/unit/test_evidence_classify.py::TestClassifyEvidenceType::test_classify_human_assertion_engineer_said PASSED [ 49%]
+tests/unit/test_evidence_classify.py::TestClassifyEvidenceType::test_classify_tool_result_git_command PASSED [ 50%]
+tests/unit/test_evidence_classify.py::TestClassifyEvidenceType::test_classify_model_inference_suggests PASSED [ 50%]
+tests/unit/test_evidence_classify.py::TestClassifyEvidenceType::test_classify_empty_returns_observation PASSED [ 51%]
+tests/unit/test_evidence_classify.py::TestClassifyEvidenceType::test_classify_model_summary PASSED [ 52%]
+tests/unit/test_evidence_classify.py::TestClassifyEvidenceType::test_classify_experiment_result PASSED [ 52%]
+tests/unit/test_evidence_classify.py::TestClassifyEvidenceType::test_classify_no_match_returns_observation PASSED [ 53%]
+tests/unit/test_evidence_classify.py::TestClassifyEvidenceType::test_classify_measurement_wins_over_observation PASSED [ 54%]
+tests/unit/test_evidence_classify.py::TestClassifyEvidenceType::test_classify_is_case_insensitive PASSED [ 54%]
+tests/unit/test_evidence_classify.py::TestClassifyEvidenceType::test_classify_tool_result_other_commands PASSED [ 55%]
+tests/unit/test_evidence_classify.py::TestClassifyEvidenceType::test_classify_measurement_keyed_number PASSED [ 56%]
+tests/unit/test_evidence_classify.py::TestClassifyEvidenceType::test_classify_whitespaced_unit_still_measurement PASSED [ 56%]
+tests/unit/test_hypothesis_normalize.py::TestNormalizeStatement::test_normalize_lowercases PASSED [ 57%]
+tests/unit/test_hypothesis_normalize.py::TestNormalizeStatement::test_normalize_strips_punctuation PASSED [ 58%]
+tests/unit/test_hypothesis_normalize.py::TestNormalizeStatement::test_normalize_collapses_whitespace PASSED [ 58%]
+tests/unit/test_hypothesis_normalize.py::TestNormalizeStatement::test_normalize_empty_returns_empty PASSED [ 59%]
+tests/unit/test_hypothesis_normalize.py::TestNormalizeStatement::test_normalize_equivalent_statements_collide PASSED [ 60%]
+tests/unit/test_hypothesis_normalize.py::TestNormalizeStatement::test_normalize_keeps_digits_and_underscores PASSED [ 60%]
+tests/unit/test_hypothesis_normalize.py::TestEvidenceWeight::test_evidence_weight_model_inference_without_source_llm_zero PASSED [ 61%]
+tests/unit/test_hypothesis_normalize.py::TestEvidenceWeight::test_evidence_weight_model_inference_with_source_llm_0_4 PASSED [ 62%]
+tests/unit/test_hypothesis_normalize.py::TestEvidenceWeight::test_evidence_weight_model_summary_zero PASSED [ 62%]
+tests/unit/test_hypothesis_normalize.py::TestEvidenceWeight::test_evidence_weight_normal_returns_quality_score PASSED [ 63%]
+tests/unit/test_hypothesis_normalize.py::TestEvidenceWeight::test_evidence_weight_human_assertion_returns_quality_score PASSED [ 64%]
+tests/unit/test_hypothesis_normalize.py::TestEvidenceWeight::test_evidence_weight_unloadable_evidence_zero PASSED [ 64%]
+tests/unit/test_information_gap_priority.py::TestComputeGapPriority::test_priority_two_hypotheses_uniform PASSED [ 65%]
+tests/unit/test_information_gap_priority.py::TestComputeGapPriority::test_priority_two_hypotheses_skewed PASSED [ 66%]
+tests/unit/test_information_gap_priority.py::TestComputeGapPriority::test_priority_three_hypotheses_uniform PASSED [ 66%]
+tests/unit/test_information_gap_priority.py::TestComputeGapPriority::test_priority_single_hypothesis_returns_0_3 PASSED [ 67%]
+tests/unit/test_information_gap_priority.py::TestComputeGapPriority::test_priority_no_hypotheses_returns_0_3 PASSED [ 67%]
+tests/unit/test_information_gap_priority.py::TestComputeGapPriority::test_priority_zero_total_returns_0_0 PASSED [ 68%]
+tests/unit/test_information_gap_priority.py::TestComputeGapPriority::test_priority_missing_hypothesis_falls_back_to_0_3 PASSED [ 69%]
+tests/unit/test_information_gap_priority.py::TestComputeGapPriority::test_priority_is_bounded_0_1 PASSED [ 69%]
+tests/unit/test_information_gap_priority.py::TestComputeGapPriority::test_priority_uniform_beats_skewed PASSED [ 70%]
+tests/unit/test_investigation_thread_debt.py::TestComputeDebt::test_debt_formula_basic PASSED [ 71%]
+tests/unit/test_investigation_thread_debt.py::TestComputeDebt::test_debt_age_capped_at_30_days PASSED [ 71%]
+tests/unit/test_investigation_thread_debt.py::TestComputeDebt::test_debt_floor_0_01_days PASSED [ 72%]
+tests/unit/test_investigation_thread_debt.py::TestComputeDebt::test_debt_zero_strength PASSED [ 73%]
+tests/unit/test_investigation_thread_debt.py::TestComputeDebt::test_debt_zero_uncertainty PASSED [ 73%]
+tests/unit/test_investigation_thread_debt.py::TestComputeDebt::test_debt_maximal_thread PASSED [ 74%]
+tests/unit/test_investigation_thread_debt.py::TestComputeDebt::test_debt_monotonic_in_age PASSED [ 75%]
+tests/unit/test_investigation_thread_debt.py::TestComputeDebt::test_debt_scales_with_impact PASSED [ 75%]
+tests/unit/test_llm.py::TestExtractJsonSafely::test_extract_json_safely_valid PASSED [ 76%]
+tests/unit/test_llm.py::TestExtractJsonSafely::test_extract_json_safely_with_prefix PASSED [ 77%]
+tests/unit/test_llm.py::TestExtractJsonSafely::test_extract_json_safely_nested PASSED [ 77%]
+tests/unit/test_llm.py::TestExtractJsonSafely::test_extract_json_safely_invalid_raises PASSED [ 78%]
+tests/unit/test_llm.py::TestExtractJsonSafely::test_extract_json_safely_multiple_objects_returns_first PASSED [ 79%]
+tests/unit/test_llm.py::TestExtractJsonSafely::test_extract_json_safely_with_prose_and_code_fence PASSED [ 79%]
+tests/unit/test_llm.py::TestExtractJsonSafely::test_extract_json_safely_empty_string_raises PASSED [ 80%]
+tests/unit/test_llm.py::TestExtractJsonSafely::test_extract_json_safely_first_brace_wins_even_if_later_valid PASSED [ 81%]
+tests/unit/test_llm.py::TestMaybeSeed::test_maybe_seed_when_env_set_groq PASSED [ 81%]
+tests/unit/test_llm.py::TestMaybeSeed::test_maybe_seed_when_env_set_openrouter PASSED [ 82%]
+tests/unit/test_llm.py::TestMaybeSeed::test_maybe_seed_when_env_unset PASSED [ 83%]
+tests/unit/test_llm.py::TestMaybeSeed::test_maybe_seed_non_groq_provider_gemini PASSED [ 83%]
+tests/unit/test_llm.py::TestMaybeSeed::test_maybe_seed_non_groq_provider_mistral PASSED [ 84%]
+tests/unit/test_llm.py::TestMaybeSeed::test_maybe_seed_blank_env_is_unset PASSED [ 84%]
+tests/unit/test_llm.py::TestMaybeSeed::test_maybe_seed_is_deterministic_across_calls PASSED [ 85%]
+tests/unit/test_llm.py::TestMaybeSeed::test_maybe_seed_does_not_touch_other_kwargs PASSED [ 86%]
+tests/unit/test_next_best_action_formula.py::TestComputeEig::test_compute_eig_single_hypothesis_returns_0_1 PASSED [ 86%]
+tests/unit/test_next_best_action_formula.py::TestComputeEig::test_compute_eig_two_hypotheses_uniform PASSED [ 87%]
+tests/unit/test_next_best_action_formula.py::TestComputeEig::test_compute_eig_skewed_pair_below_uniform PASSED [ 88%]
+tests/unit/test_next_best_action_formula.py::TestComputeEig::test_compute_eig_disabled_flag_returns_stub_0 PASSED [ 88%]
+tests/unit/test_next_best_action_formula.py::TestDecisionImpactAndFalsification::test_compute_decision_impact_no_hypotheses_returns_0_5 PASSED [ 89%]
+tests/unit/test_next_best_action_formula.py::TestDecisionImpactAndFalsification::test_compute_decision_impact_target_mentions_leading PASSED [ 90%]
+tests/unit/test_next_best_action_formula.py::TestDecisionImpactAndFalsification::test_compute_decision_impact_unrelated_target_returns_0_3 PASSED [ 90%]
+tests/unit/test_next_best_action_formula.py::TestDecisionImpactAndFalsification::test_compute_falsification_value_find_counterevidence PASSED [ 91%]
+tests/unit/test_next_best_action_formula.py::TestDecisionImpactAndFalsification::test_compute_falsification_value_other PASSED [ 92%]
+tests/unit/test_next_best_action_formula.py::TestThreadDebtBonus::test_debt_bonus_word_overlap_with_high_debt_thread PASSED [ 92%]
+tests/unit/test_next_best_action_formula.py::TestThreadDebtBonus::test_debt_bonus_no_word_overlap_is_zero PASSED [ 93%]
+tests/unit/test_next_best_action_formula.py::TestThreadDebtBonus::test_debt_bonus_no_active_threads_is_zero PASSED [ 94%]
+tests/unit/test_next_best_action_formula.py::TestThreadDebtBonus::test_debt_bonus_low_debt_thread_is_small PASSED [ 94%]
+tests/unit/test_next_best_action_formula.py::TestThreadDebtBonus::test_debt_bonus_no_target_is_zero PASSED [ 95%]
+tests/unit/test_next_best_action_formula.py::TestComputePriorityWithFactors::test_compute_priority_with_factors_shape PASSED [ 96%]
+tests/unit/test_next_best_action_formula.py::TestComputePriorityWithFactors::test_compute_priority_formula_values PASSED [ 96%]
+tests/unit/test_next_best_action_formula.py::TestComputePriorityWithFactors::test_compute_priority_clamped_to_1 PASSED [ 97%]
+tests/unit/test_next_best_action_formula.py::TestComputePriorityWithFactors::test_compute_priority_clamped_to_0 PASSED [ 98%]
+tests/unit/test_next_best_action_formula.py::TestComputePriorityWithFactors::test_compute_priority_debt_bonus_adds_to_score PASSED [ 98%]
+tests/unit/test_next_best_action_formula.py::TestComputePriorityWithFactors::test_compute_priority_wrapper_matches_factors PASSED [ 99%]
+tests/unit/test_next_best_action_formula.py::TestComputePriorityWithFactors::test_compute_priority_disabled_flag_all_stubs PASSED [100%]
+
+============================= 153 passed in 1.26s ==============================
+```
+
+Exit code: 0
+
+## Collection check
+
+Command: python3 -m pytest tests/ --collect-only -q (tail)
+
+```
+tests/unit/test_next_best_action_formula.py::TestComputePriorityWithFactors::test_compute_priority_clamped_to_0
+tests/unit/test_next_best_action_formula.py::TestComputePriorityWithFactors::test_compute_priority_debt_bonus_adds_to_score
+tests/unit/test_next_best_action_formula.py::TestComputePriorityWithFactors::test_compute_priority_wrapper_matches_factors
+tests/unit/test_next_best_action_formula.py::TestComputePriorityWithFactors::test_compute_priority_disabled_flag_all_stubs
+
+239 tests collected in 1.25s
+```
+
+Collection exit code: 0 (239 tests expected: 153 unit + 81 integration + 5 eval)
+
+## Integration + eval layers — honest sandbox status (Stages 6/7)
+
+Command: python3 -m pytest tests/integration/ tests/eval/ -q
+
+No Postgres server exists in this sandbox (and DATABASE_URL here is a
+non-postgres DSN, treated as unset), so every integration test skips at
+the db_pool fixture and every eval test skips on the missing LLM key /
+DB — 86 skips, 0 failures. This is the documented skip-clean contract
+(doc Part 4 §0.4 gate 6/7 cannot be satisfied here; user-side commands
+in 06_integration_tests_BLOCKED.md / 07_eval_tests_BLOCKED.md).
+
+```
+ssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss [ 83%]
+ssssssssssssss                                                           [100%]
+86 skipped in 1.16s
+```
+
+Exit code: 0 (0 — skips are not failures)

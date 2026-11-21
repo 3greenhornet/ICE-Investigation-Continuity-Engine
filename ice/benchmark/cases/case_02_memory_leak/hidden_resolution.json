@@ -1,0 +1,13 @@
+{
+  "root_cause": "Response caching layer retains request objects indefinitely",
+  "primary_hypothesis": "Response cache retains request objects",
+  "secondary_hypotheses": ["GC tuning issue", "Traffic volume increase"],
+  "contradictions": [
+    {
+      "claim_a": "Garbage collection is healthy and keeps up with the allocation rate",
+      "claim_b": "Garbage collection is misconfigured and causes the memory growth",
+      "resolution": "The heap dump shows the retained objects are reachable from the cache; GC has nothing to collect"
+    }
+  ],
+  "decision": "Disable the response caching layer and add a TTL with an eviction policy for cached entries"
+}

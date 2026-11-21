@@ -1,0 +1,13 @@
+{
+  "case_id": "case_05_deploy_loop",
+  "title": "Deployment loop in staging",
+  "objective": "Identify the root cause of the staging redeploy loop that triggers every 15 minutes with no human interaction",
+  "required_confidence": 0.85,
+  "decision_deadline": "2026-10-08T18:00:00Z",
+  "evidence_files": [
+    {"file": "evidence/01_incident.md", "order": 1},
+    {"file": "evidence/02_ci_logs.txt", "order": 2},
+    {"file": "evidence/03_healthcheck_notes.md", "order": 3},
+    {"file": "evidence/04_engineer_comment.txt", "order": 4}
+  ]
+}

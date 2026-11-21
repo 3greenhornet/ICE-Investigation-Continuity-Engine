@@ -1,0 +1,13 @@
+{
+  "root_cause": "Migration 004 renamed user_status to account_state without updating the reconciliation job's SQL",
+  "primary_hypothesis": "Schema migration broke the reconciliation job",
+  "secondary_hypotheses": ["Job scheduler failure", "Replication lag"],
+  "contradictions": [
+    {
+      "claim_a": "The reconciliation job is idempotent and stable",
+      "claim_b": "The reconciliation job failed after the deploy",
+      "resolution": "The stability documentation at 10:00 was stale; migration 004 at 12:00 renamed the column the job's SQL reads"
+    }
+  ],
+  "decision": "Patch the reconciliation job's SQL to use account_state, backfill the 12k NULL rows, and add the job's SQL repository to the migration reference scan"
+}

@@ -1,0 +1,1 @@
+Some services still present the old RSA cert. The load balancer alternates between cert stacks depending on which backend answers. When a token signed by the new stack gets validated by an old-stack node, signature verification fails. backend-2 and backend-5 are the ones stuck on the old cert.

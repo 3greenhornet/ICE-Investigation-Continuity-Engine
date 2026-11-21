@@ -1,0 +1,1 @@
+"""Eval tests: full-pipeline benchmark smoke tests, require LLM keys + DB (marker: eval)."""

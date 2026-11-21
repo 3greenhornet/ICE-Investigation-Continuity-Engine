@@ -1,0 +1,1 @@
+"""Integration tests: require a real Postgres + ICE schema (marker: integration)."""

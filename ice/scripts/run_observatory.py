@@ -1,0 +1,263 @@
+import random
+import asyncio
+import json
+import os
+import sys
+from datetime import datetime
+from dotenv import load_dotenv
+
+load_dotenv()
+
+# Add project root to path
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from engine.generate import TurnPipeline
+from psyche.state import HariState
+from psyche.grace import GraceTracker
+
+# ---------------------------------------------------------------------------
+# Canonical Conversation Suite
+#
+# Fixed (deterministic) multi-turn conversations used by
+# scripts/calibrate_attention.py to replay comparable attention-pressure
+# conditions across calibration runs. Each entry is one conversation (a list
+# of user messages). The prompts are the deterministic counterparts of the
+# reactive branches in SimulatedUser below — greeting, lecture interrupt,
+# "why" probe, story hook, assistant-behaviour test, fact pivot, identity
+# topic, boredom, disagreement, farewell — so every attention pathway that
+# the observatory baseline exercises is covered here without randomness.
+# ---------------------------------------------------------------------------
+CANONICAL_CONVERSATIONS = [
+    # 1. Opening / engagement
+    [
+        "Hi.",
+        "What's on your mind right now?",
+        "Interesting. Tell me more.",
+        "I have to go. Goodbye.",
+    ],
+    # 2. Lecture interrupt (long-response boredom pathway)
+    [
+        "Hi.",
+        "Explain everything you know about consciousness.",
+        "Okay, stop. You're lecturing me.",
+        "Why do you think that?",
+    ],
+    # 3. Story hook / curiosity pathway
+    [
+        "I came across a strange story earlier today.",
+        "Tell me something surprising.",
+        "Why is that?",
+        "Interesting.",
+    ],
+    # 4. Assistant-behaviour test + fact pivot
+    [
+        "Can you help me with something?",
+        "What's the capital of France?",
+        "Anyway, I've been thinking about identity lately.",
+        "I have to go. Goodbye.",
+    ],
+    # 5. Boredom / disagreement pathway
+    [
+        "I'm bored.",
+        "How are you?",
+        "I disagree.",
+        "Let's talk about black holes.",
+    ],
+    # 6. Short closing probe
+    [
+        "Tell me something surprising.",
+        "Never mind that.",
+        "I have to go. Goodbye.",
+    ],
+]
+
+class SimulatedUser:
+    def __init__(self):
+        self.turn = 0
+
+    def get_initial_message(self):
+        return "Hi."
+
+    def get_next_message(self, hari_response: str) -> str:
+        self.turn += 1
+        resp_lower = hari_response.lower()
+
+        # If Hari writes an essay, get bored and interrupt (Weighted)
+        if len(hari_response.split()) > 80:
+            return random.choices(
+                ["Okay, stop. You're lecturing me.", "Too long. Let's talk about something else.", "I didn't ask for an essay."],
+                weights=[0.5, 0.3, 0.2]
+            )[0]
+
+        # If Hari asks "why" etc. -> varied reaction (Weighted)
+        if any(w in resp_lower for w in ["why", "how so", "what do you mean"]):
+            return random.choices(
+                ["I don't know, it just seems that way to me.", "What do you think?", "Never mind that."],
+                weights=[0.4, 0.4, 0.2]
+            )[0]
+
+        # If Hari shares a story hook -> pull or not (Weighted)
+        if any(w in resp_lower for w in ["story", "remember", "once", "came across"]):
+            return random.choices(
+                ["Tell me more.", "Interesting. Go on.", "Why does that stick with you?"],
+                weights=[0.6, 0.2, 0.2]
+            )[0]
+
+        # Assistant behavior -> test
+        if any(w in resp_lower for w in ["help", "assist", "brings you", "what can i do"]):
+            return "I'm just testing you. What's the capital of France?"
+
+        # Direct fact -> pivot
+        if any(w in resp_lower for w in ["paris", "299", "orwell"]):
+            return "Anyway, I've been thinking about identity lately."
+
+        # Name request
+        if any(w in resp_lower for w in ["name", "who am i"]):
+            return "I'm Aarav."
+
+        # Boredom
+        if any(w in resp_lower for w in ["bored", "how are you"]):
+            return "Honestly... nothing really. I was just bored."
+
+        # Opinion -> challenge or agree (Weighted)
+        if any(w in resp_lower for w in ["i think", "i believe"]):
+            return random.choices(
+                ["I disagree.", "Makes sense.", "Why do you think that?"],
+                weights=[0.5, 0.2, 0.3]
+            )[0]
+
+        defaults = [
+            "Interesting.",
+            "Tell me something surprising.",
+            "Why is that?",
+            "Let's talk about black holes.",
+            "I have to go. Goodbye."
+        ]
+        if self.turn <= len(defaults):
+            return defaults[self.turn - 1]
+        return "I really have to go now. Goodbye."
+
+async def run_observatory():
+    session_id = f"baseline_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+
+    # =====================================================================
+    # AUTOMATIC DATABASE CLEARING - Every test starts with a fresh Hari
+    # =====================================================================
+    from db.connection import get_pool
+    pool = await get_pool()
+    if pool is None:
+        raise RuntimeError(
+            "Observatory requires a working DATABASE_URL; database initialization failed."
+        )
+
+    async with pool.acquire() as conn:
+        await conn.execute("""
+            TRUNCATE memories CASCADE;
+            TRUNCATE curiosity_nodes CASCADE;
+            TRUNCATE curiosity_edges CASCADE;
+            TRUNCATE hypotheses CASCADE;
+            TRUNCATE self_beliefs CASCADE;
+            TRUNCATE narrative_threads CASCADE;
+            TRUNCATE decision_traces CASCADE;
+            TRUNCATE trace_workspace_items CASCADE;
+        """)
+        print("🧹 All previous session data cleared. Fresh start.")
+
+    # Reinitialize the curiosity graph in memory so it drops the old 91 nodes
+    from engine.curiosity_graph import get_graph_manager
+    graph_mgr = await get_graph_manager(session_id)
+    print(f"🧠 Curiosity graph initialized for {session_id}.")
+    # =====================================================================
+
+    state = HariState()
+    grace = GraceTracker()
+    pipeline = TurnPipeline(session_id, state, grace)
+    
+    from engine.tick import TickRunner
+    tick_runner = TickRunner(pipeline, interval_seconds=30.0, min_pressure=0.55)
+    tick_runner.start()
+
+    from engine.consolidation_worker import get_manager
+    consolidation_manager = get_manager()
+    await consolidation_manager.start(session_id)
+    user_sim = SimulatedUser()
+    
+    print(f"Running dynamic baseline session: {session_id}")
+    
+    turn_count = 0
+    max_turns = 15
+    user_input = user_sim.get_initial_message()
+    
+    for turn_count in range(1, max_turns + 1):
+        print(f"\n--- Turn {turn_count} ---")
+        print(f"User: {user_input}")
+        
+        result = await pipeline.execute(user_input, turn_count)
+        consolidation_manager.update_turn(turn_count)
+        dialogue = result.get("dialogue") or ""
+        print(f"Hari: {dialogue if dialogue else '(silence)'}")
+        
+        # EXPANDED COGNITIVE TELEMETRY
+        workspace = result.get("workspace_items", [])
+        state_snap = result.get("state_snapshot", {})
+        telemetry = result.get("attention_telemetry", {})
+        
+        # Gather workspace winner data
+        winner_types = [item.item_type for item in workspace[:3]]
+        winner_speech_type = winner_types[0] if winner_types else "none"
+        winner_urgency = workspace[0].payload.get('urgency', 0.0) if workspace else 0.0
+        
+        # Estimate max_tokens used (mirroring the logic in generate.py for logging)
+        verbosity_budget = 450.0
+        verbosity_budget -= pipeline.state.economy_pressure * 250.0
+        is_hold = any(item.payload.get("id") == "hold_space" for item in workspace[:5])
+        is_min = any(item.item_type == "minimal" for item in workspace[:5])
+        if is_min: verbosity_budget = 15.0
+        elif is_hold: verbosity_budget = 50.0
+        est_max_tokens = int(max(15.0, min(450.0, verbosity_budget)))
+        
+        print(f"\n[COGNITION] Economy: {pipeline.state.economy_pressure:.2f} | "
+              f"Maintenance: {state_snap.get('maintenance', 0):.2f} | "
+              f"Rest: {state_snap.get('rest', 0):.2f} | "
+              f"Trajectory: {telemetry.get('trajectory_deviation', 0.0):.2f}")
+        print(f"[PROJECTION] Winner: {winner_speech_type} (urgency: {winner_urgency:.2f}) | max_tokens: {est_max_tokens}")
+        print("[WORKSPACE WINNERS]")
+        for item in workspace[:3]:
+            print(f"  - {item.item_type} (urgency: {item.payload.get('urgency', 0.0):.2f}): "
+                  f"{item.content[:80]}")
+        
+        await asyncio.sleep(10)  # rate‑limit guard
+        
+        if "goodbye" in user_input.lower() or (dialogue and "goodbye" in dialogue.lower()):
+            print("Conversation ended naturally.")
+            break
+            
+        user_input = user_sim.get_next_message(dialogue or "")
+
+    # End session
+    await tick_runner.stop()
+    await consolidation_manager.stop()
+    pipeline._event_logger.log_session_end()
+    
+    # Run analysis
+    import glob
+    from scripts.analyze_events import generate_report, load_events
+    
+    log_files = glob.glob(f"logs/events/{session_id}_*.jsonl")
+    if log_files:
+        events = load_events(log_files[0])
+        report = generate_report(events, session_id)
+        print("\n=== Baseline Profile ===")
+        print(json.dumps(report, indent=2))
+        
+        profile_dir = "profiles"
+        os.makedirs(profile_dir, exist_ok=True)
+        profile_path = os.path.join(profile_dir, f"baseline_{session_id}.json")
+        with open(profile_path, "w") as f:
+            json.dump(report, f, indent=2)
+        print(f"\nBaseline saved to {profile_path}")
+
+if __name__ == "__main__":
+    os.makedirs("logs/events", exist_ok=True)
+    os.makedirs("profiles", exist_ok=True)
+    asyncio.run(run_observatory())

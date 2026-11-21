@@ -1,0 +1,24 @@
+# Dockerfile.ui — ICE Streamlit UI image (spec Part 4 §19.2).
+# Serves: streamlit run ui/streamlit_app.py --server.port 8501 --server.address 0.0.0.0
+#
+# The UI talks to the API over HTTP only (API_BASE_URL); it never owns state.
+# streamlit + httpx are core dependencies in pyproject.toml, so a plain
+# editable install of the project is sufficient (spec's ".[ui]" extra folded
+# into core). app/ is copied for type references only.
+
+FROM python:3.12-slim
+
+WORKDIR /app
+
+# Dependency layer (cached). See Dockerfile for the compat-mode note: the
+# .pth-based editable install points at /app, so packages copied in the next
+# layers resolve without re-installing.
+COPY pyproject.toml poetry.lock* ./
+RUN pip install --no-cache-dir -e . --config-settings editable_mode=compat
+
+COPY ui/ ./ui/
+COPY app/ ./app/
+
+EXPOSE 8501
+
+CMD ["streamlit", "run", "ui/streamlit_app.py", "--server.port", "8501", "--server.address", "0.0.0.0"]

@@ -1,0 +1,5 @@
+2026-10-04T12:00:03Z deploy: applying migration 004 (release r88)
+2026-10-04T12:00:04Z migration 004: ALTER TABLE accounts RENAME COLUMN user_status TO account_state;
+2026-10-04T12:00:05Z migration 004: UPDATE accounts SET account_state = 'active' WHERE account_state IS NULL;
+2026-10-04T12:00:41Z migration 004: backfill complete (1.2M rows updated)
+2026-10-04T12:00:42Z deploy: release r88 marked successful; 0 consumers flagged by reference scan

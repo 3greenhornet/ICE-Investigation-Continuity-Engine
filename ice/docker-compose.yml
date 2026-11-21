@@ -1,0 +1,79 @@
+# docker-compose.yml — ICE multi-service local deployment (spec Part 4 §19.3).
+#
+#   docker compose up -d --build
+#   curl http://localhost:8000/api/v1/health/ready   # {"status":"ok","db":"ok","llm":"ok"}
+#   open http://localhost:8501
+#
+# All ${VAR} substitutions come from the environment or a local .env file
+# (see .env.example). The api service passes the variables listed below; other
+# runtime settings use the in-process defaults from spec Part 1 §9.
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: ice-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-ice_cognitive}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      # Read-only reference copy of the SQL migrations. NOTE: the Postgres
+      # entrypoint only executes files directly under /docker-entrypoint-initdb.d
+      # (not subdirectories); use scripts/migrate_all.py, the conftest fixture,
+      # or run 012a-014 manually against a fresh volume on first startup.
+      - ./db/migrations:/docker-entrypoint-initdb.d/migrations:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ice-api
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    # Apply ICE migrations 012a-014 before serving (spec §19.6 acceptance 5;
+    # 012a is the legacy-data safety check that must precede 012's drops).
+    # The scripts are copied into the image by the Dockerfile; the runner is
+    # idempotent (skips tables that already exist and files recorded in
+    # ice_migration_history), so restarts are safe.
+    command:
+      [
+        "sh", "-c",
+        "python scripts/apply_ice_migrations.py && uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 2",
+      ]
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-ice_cognitive}
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+      GROQ_API_KEY: ${GROQ_API_KEY}
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY}
+      MISTRAL_API_KEY: ${MISTRAL_API_KEY}
+      ENABLE_FALSIFICATION_LOOP: ${ENABLE_FALSIFICATION_LOOP:-false}
+      ENABLE_NEXT_BEST_EVIDENCE: ${ENABLE_NEXT_BEST_EVIDENCE:-true}
+
+  ui:
+    build:
+      context: .
+      dockerfile: Dockerfile.ui
+    container_name: ice-ui
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      - "8501:8501"
+    environment:
+      API_BASE_URL: http://api:8000/api/v1
+
+volumes:
+  postgres_data:

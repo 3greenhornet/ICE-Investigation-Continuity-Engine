@@ -1,0 +1,89 @@
+# pyproject.toml — ICE (Investigation Continuity Engine) on the Hari substrate.
+# Spec reference: Part 1 §9 (config), Part 4 §18 (testing), §19 (deployment).
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ice-hari"
+version = "1.0.0"
+description = "Investigation Continuity Engine (ICE): persistent case state, evidence, competing hypotheses, and next-best investigation-step selection."
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    # State plane
+    "asyncpg>=0.29",
+    "pgvector>=0.3",
+    # Numeric / graph substrate
+    "numpy>=1.26",
+    "networkx>=3.2",
+    # LLM access (case_engine/llm.py fallback chain; engine/client.py uses google-genai)
+    "litellm>=1.40",
+    "google-genai>=0.3",
+    # Config / contracts
+    "python-dotenv>=1.0",
+    "pydantic>=2.5",
+    # Projection plane
+    "fastapi>=0.110",
+    "uvicorn[standard]>=0.29",
+    "httpx>=0.27",
+    "streamlit>=1.35",
+]
+
+[project.optional-dependencies]
+# Document parsing (case_engine/evidence.py ingest_evidence_from_file; plain-text fallback when absent)
+parsing = ["docling>=2.0"]
+# URL scraping (case_engine/evidence.py ingest_evidence_from_url; SCRAPER env picks exactly one)
+scraping = ["scrapfly-sdk>=0.2", "firecrawl-py>=1.0"]
+# Test harness (conftest.py, pytest.ini, .github/workflows/test.yml)
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.23",
+    "testcontainers[postgres]>=4.0",
+    "ruff>=0.4",
+]
+# Used by the CI eval job (`pip install -e ".[dev,eval]"`, spec §18.3).
+# The DeepEval integration itself is Phase 2+ (DEEPEVAL_ENABLED is documented as deferred).
+eval = ["deepeval>=1.0"]
+# NLI claim-hypothesis classification (case_engine/nli.py, ICE fixes doc
+# Part 2 §10, fix 2I). RoBERTa-large-MNLI (~1.4 GB) downloads on first use.
+# Without it, classify_claim_against_hypothesis returns None and edges stay manual.
+nli = ["transformers>=4.30", "torch>=2.0"]
+
+[tool.setuptools.packages.find]
+# Legacy substrate (engine/, psyche/, models/, providers/, db/) ships in the same
+# distribution because case-mode TurnPipeline still imports from engine/*.
+# utils/ is intentionally NOT a package (standalone helper scripts, not imported by any package above).
+where = [".", "serendipity-engine"]
+include = [
+    "case_engine*",
+    "app*",
+    "cli*",
+    "ui*",
+    "benchmark*",
+    "engine*",
+    "psyche*",
+    "models*",
+    "providers*",
+    "db*",
+    "scripts*",
+    "serendipity*",
+    "ice_adapter*",
+]
+
+# NOTE: pytest reads pytest.ini (which takes precedence over this table when both
+# exist). These values mirror pytest.ini per spec Part 4 §18.2 so that the
+# configuration travels with the package metadata.
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+markers = [
+    "unit: Fast, no DB, no LLM",
+    "integration: Requires DB",
+    "eval: Requires LLM (slow)",
+    "benchmark: Full pipeline",
+]
+filterwarnings = [
+    "ignore::DeprecationWarning",
+]

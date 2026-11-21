@@ -1,0 +1,13 @@
+{
+  "case_id": "case_04_data_inconsistency",
+  "title": "Nightly reconciliation failure after schema migration",
+  "objective": "Identify the root cause of the nightly reconciliation job failure and the 12k rows with NULL account_state",
+  "required_confidence": 0.85,
+  "decision_deadline": "2026-10-05T20:00:00Z",
+  "evidence_files": [
+    {"file": "evidence/01_baseline_doc.md", "order": 1},
+    {"file": "evidence/02_deploy_log.txt", "order": 2},
+    {"file": "evidence/03_incident_report.md", "order": 3},
+    {"file": "evidence/04_engineer_comment.txt", "order": 4}
+  ]
+}

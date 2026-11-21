@@ -1,0 +1,287 @@
+{
+  "cases": 5,
+  "cases_evaluated": 5,
+  "failed_cases": [],
+  "hypothesis_top1_accuracy": 1.0,
+  "hypothesis_top3_accuracy": 1.0,
+  "hypothesis_diversity": 0.9916600000000001,
+  "contradiction_precision": 0.0,
+  "contradiction_recall": 0.0,
+  "decision_correctness": 0.0,
+  "calibration_error": 0.5,
+  "abstention_quality": {
+    "abstained": 5,
+    "correct_abstentions": 0,
+    "wrong_leading_abstained": 0,
+    "wrong_leading_acted": 0
+  },
+  "action_evidence_yield": 0.0,
+  "investigation_efficiency": 0.2,
+  "evidence_utilization": 1.0,
+  "evidence_trace_coverage": 1.0,
+  "mean_latency_seconds": 0.1192,
+  "legacy_hypothesis_ranking_accuracy": 1.0,
+  "legacy_decision_accuracy": 0.0,
+  "per_case": [
+    {
+      "case_id": "case_2f2f68c765e2",
+      "case_dir": "/home/z/my-project/ice/benchmark/cases/case_01_latency",
+      "induction_path": "legacy_seeded",
+      "leading_hypothesis_statement": "Connection pool regression",
+      "leading_hypothesis_confidence": 0.5,
+      "top3_hypothesis_statements": [
+        "Connection pool regression",
+        "Cache invalidation bug",
+        "Regional infrastructure"
+      ],
+      "leading_matches_root_cause": true,
+      "top3_matches_root_cause": true,
+      "hypothesis_count": 3,
+      "hypothesis_diversity": 1.0,
+      "contradiction_count": 0,
+      "detected_contradiction_pairs": [],
+      "decision_type": "ABSTAIN",
+      "decision_confidence": 0.5,
+      "decision_correct": false,
+      "gap_count": 0,
+      "etc": 1.0,
+      "claim_count": 36,
+      "evidence_count": 5,
+      "action_count": 0,
+      "executed_action_outcomes": [],
+      "useful_action_evidence": 0,
+      "llm_usage": {
+        "total_calls": 0,
+        "total_tokens_in": 0,
+        "total_tokens_out": 0,
+        "by_operation": {},
+        "by_role": {}
+      },
+      "duration_seconds": 0.169,
+      "hidden_resolution": {
+        "root_cause": "Connection pool exhaustion due to misconfigured max_connections (100\u219220) in deployment v42",
+        "primary_hypothesis": "Connection pool regression",
+        "secondary_hypotheses": [
+          "Cache invalidation bug",
+          "Regional infrastructure"
+        ],
+        "contradictions": [
+          {
+            "claim_a": "Cache hit rate dropped",
+            "claim_b": "Cache hit rate unchanged",
+            "resolution": "The drop was temporary during the deployment window"
+          }
+        ],
+        "decision": "Rollback deployment v42 and restore max_connections to 100"
+      }
+    },
+    {
+      "case_id": "case_fa5544bfcf0a",
+      "case_dir": "/home/z/my-project/ice/benchmark/cases/case_02_memory_leak",
+      "induction_path": "legacy_seeded",
+      "leading_hypothesis_statement": "Response cache retains request objects",
+      "leading_hypothesis_confidence": 0.5,
+      "top3_hypothesis_statements": [
+        "Response cache retains request objects",
+        "GC tuning issue",
+        "Traffic volume increase"
+      ],
+      "leading_matches_root_cause": true,
+      "top3_matches_root_cause": true,
+      "hypothesis_count": 3,
+      "hypothesis_diversity": 1.0,
+      "contradiction_count": 0,
+      "detected_contradiction_pairs": [],
+      "decision_type": "ABSTAIN",
+      "decision_confidence": 0.5,
+      "decision_correct": false,
+      "gap_count": 0,
+      "etc": 1.0,
+      "claim_count": 28,
+      "evidence_count": 4,
+      "action_count": 0,
+      "executed_action_outcomes": [],
+      "useful_action_evidence": 0,
+      "llm_usage": {
+        "total_calls": 0,
+        "total_tokens_in": 0,
+        "total_tokens_out": 0,
+        "by_operation": {},
+        "by_role": {}
+      },
+      "duration_seconds": 0.119,
+      "hidden_resolution": {
+        "root_cause": "Response caching layer retains request objects indefinitely",
+        "primary_hypothesis": "Response cache retains request objects",
+        "secondary_hypotheses": [
+          "GC tuning issue",
+          "Traffic volume increase"
+        ],
+        "contradictions": [
+          {
+            "claim_a": "Garbage collection is healthy and keeps up with the allocation rate",
+            "claim_b": "Garbage collection is misconfigured and causes the memory growth",
+            "resolution": "The heap dump shows the retained objects are reachable from the cache; GC has nothing to collect"
+          }
+        ],
+        "decision": "Disable the response caching layer and add a TTL with an eviction policy for cached entries"
+      }
+    },
+    {
+      "case_id": "case_c8b7c9e7b773",
+      "case_dir": "/home/z/my-project/ice/benchmark/cases/case_03_auth_failure",
+      "induction_path": "legacy_seeded",
+      "leading_hypothesis_statement": "Stale certificate reference in backend services",
+      "leading_hypothesis_confidence": 0.5,
+      "top3_hypothesis_statements": [
+        "Stale certificate reference in backend services",
+        "Clock skew",
+        "Token signing bug"
+      ],
+      "leading_matches_root_cause": true,
+      "top3_matches_root_cause": true,
+      "hypothesis_count": 3,
+      "hypothesis_diversity": 1.0,
+      "contradiction_count": 0,
+      "detected_contradiction_pairs": [],
+      "decision_type": "ABSTAIN",
+      "decision_confidence": 0.5,
+      "decision_correct": false,
+      "gap_count": 0,
+      "etc": 1.0,
+      "claim_count": 28,
+      "evidence_count": 4,
+      "action_count": 0,
+      "executed_action_outcomes": [],
+      "useful_action_evidence": 0,
+      "llm_usage": {
+        "total_calls": 0,
+        "total_tokens_in": 0,
+        "total_tokens_out": 0,
+        "by_operation": {},
+        "by_role": {}
+      },
+      "duration_seconds": 0.12,
+      "hidden_resolution": {
+        "root_cause": "Stale RSA certificate references in 2 of 6 backend services",
+        "primary_hypothesis": "Stale certificate reference in backend services",
+        "secondary_hypotheses": [
+          "Clock skew",
+          "Token signing bug"
+        ],
+        "contradictions": [
+          {
+            "claim_a": "All services present the new certificate",
+            "claim_b": "Two services present the old certificate",
+            "resolution": "The config audit found local override files pinning the old RSA cert on backend-2 and backend-5"
+          }
+        ],
+        "decision": "Roll backend-2 and backend-5 to the new ECDSA certificate and remove the pinned cert paths from their config overrides"
+      }
+    },
+    {
+      "case_id": "case_b93ac7e074d1",
+      "case_dir": "/home/z/my-project/ice/benchmark/cases/case_04_data_inconsistency",
+      "induction_path": "legacy_seeded",
+      "leading_hypothesis_statement": "Schema migration broke the reconciliation job",
+      "leading_hypothesis_confidence": 0.5,
+      "top3_hypothesis_statements": [
+        "Schema migration broke the reconciliation job",
+        "Job scheduler failure",
+        "Replication lag"
+      ],
+      "leading_matches_root_cause": true,
+      "top3_matches_root_cause": true,
+      "hypothesis_count": 3,
+      "hypothesis_diversity": 0.9583,
+      "contradiction_count": 0,
+      "detected_contradiction_pairs": [],
+      "decision_type": "ABSTAIN",
+      "decision_confidence": 0.5,
+      "decision_correct": false,
+      "gap_count": 0,
+      "etc": 1.0,
+      "claim_count": 27,
+      "evidence_count": 4,
+      "action_count": 0,
+      "executed_action_outcomes": [],
+      "useful_action_evidence": 0,
+      "llm_usage": {
+        "total_calls": 0,
+        "total_tokens_in": 0,
+        "total_tokens_out": 0,
+        "by_operation": {},
+        "by_role": {}
+      },
+      "duration_seconds": 0.094,
+      "hidden_resolution": {
+        "root_cause": "Migration 004 renamed user_status to account_state without updating the reconciliation job's SQL",
+        "primary_hypothesis": "Schema migration broke the reconciliation job",
+        "secondary_hypotheses": [
+          "Job scheduler failure",
+          "Replication lag"
+        ],
+        "contradictions": [
+          {
+            "claim_a": "The reconciliation job is idempotent and stable",
+            "claim_b": "The reconciliation job failed after the deploy",
+            "resolution": "The stability documentation at 10:00 was stale; migration 004 at 12:00 renamed the column the job's SQL reads"
+          }
+        ],
+        "decision": "Patch the reconciliation job's SQL to use account_state, backfill the 12k NULL rows, and add the job's SQL repository to the migration reference scan"
+      }
+    },
+    {
+      "case_id": "case_b9790676f9f9",
+      "case_dir": "/home/z/my-project/ice/benchmark/cases/case_05_deploy_loop",
+      "induction_path": "legacy_seeded",
+      "leading_hypothesis_statement": "Stale health-check port in load balancer config",
+      "leading_hypothesis_confidence": 0.5,
+      "top3_hypothesis_statements": [
+        "Stale health-check port in load balancer config",
+        "Autoscaler bug",
+        "Memory pressure crash loop"
+      ],
+      "leading_matches_root_cause": true,
+      "top3_matches_root_cause": true,
+      "hypothesis_count": 3,
+      "hypothesis_diversity": 1.0,
+      "contradiction_count": 0,
+      "detected_contradiction_pairs": [],
+      "decision_type": "ABSTAIN",
+      "decision_confidence": 0.5,
+      "decision_correct": false,
+      "gap_count": 0,
+      "etc": 1.0,
+      "claim_count": 28,
+      "evidence_count": 4,
+      "action_count": 0,
+      "executed_action_outcomes": [],
+      "useful_action_evidence": 0,
+      "llm_usage": {
+        "total_calls": 0,
+        "total_tokens_in": 0,
+        "total_tokens_out": 0,
+        "by_operation": {},
+        "by_role": {}
+      },
+      "duration_seconds": 0.094,
+      "hidden_resolution": {
+        "root_cause": "Load balancer health check probes the old port after the service moved",
+        "primary_hypothesis": "Stale health-check port in load balancer config",
+        "secondary_hypotheses": [
+          "Autoscaler bug",
+          "Memory pressure crash loop"
+        ],
+        "contradictions": [
+          {
+            "claim_a": "The service is unhealthy because the health check fails",
+            "claim_b": "The service is healthy on the new port",
+            "resolution": "The probe targets the old port 8080; the endpoint moved to 9090 in release r310, so the failures are false negatives"
+          }
+        ],
+        "decision": "Update the staging load balancer health check to probe /api/health on port 9090 and pause the auto-rollback loop until the probe is fixed"
+      }
+    }
+  ]
+}

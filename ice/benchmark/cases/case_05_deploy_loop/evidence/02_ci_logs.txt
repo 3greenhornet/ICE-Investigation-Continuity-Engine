@@ -1,0 +1,12 @@
+2026-10-07T09:15:02Z deploy: staging deploy #4412 succeeded (release r310)
+2026-10-07T09:18:41Z autoscaler: health check failed for checkout-staging (/api/health, 3/3 probes timeout)
+2026-10-07T09:18:41Z autoscaler: auto-rollback triggered: health check failed /api/health
+2026-10-07T09:18:42Z deploy: rollback to r309 completed
+2026-10-07T09:33:02Z deploy: staging deploy #4413 succeeded (release r310)
+2026-10-07T09:36:40Z autoscaler: health check failed for checkout-staging (/api/health, 3/3 probes timeout)
+2026-10-07T09:36:41Z autoscaler: auto-rollback triggered: health check failed /api/health
+2026-10-07T09:36:42Z deploy: rollback to r309 completed
+2026-10-07T09:51:02Z deploy: staging deploy #4414 succeeded (release r310)
+2026-10-07T09:54:41Z autoscaler: health check failed for checkout-staging (/api/health, 3/3 probes timeout)
+2026-10-07T09:54:42Z autoscaler: auto-rollback triggered: health check failed /api/health
+(pattern repeats every 15 minutes; no manual triggers in the log)

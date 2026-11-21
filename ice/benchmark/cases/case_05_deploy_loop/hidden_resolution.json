@@ -1,0 +1,13 @@
+{
+  "root_cause": "Load balancer health check probes the old port after the service moved",
+  "primary_hypothesis": "Stale health-check port in load balancer config",
+  "secondary_hypotheses": ["Autoscaler bug", "Memory pressure crash loop"],
+  "contradictions": [
+    {
+      "claim_a": "The service is unhealthy because the health check fails",
+      "claim_b": "The service is healthy on the new port",
+      "resolution": "The probe targets the old port 8080; the endpoint moved to 9090 in release r310, so the failures are false negatives"
+    }
+  ],
+  "decision": "Update the staging load balancer health check to probe /api/health on port 9090 and pause the auto-rollback loop until the probe is fixed"
+}

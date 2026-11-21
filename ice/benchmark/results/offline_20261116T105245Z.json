@@ -1,0 +1,279 @@
+{
+  "cases": 5,
+  "cases_evaluated": 5,
+  "failed_cases": [],
+  "hypothesis_top1_accuracy": 0.2,
+  "hypothesis_top3_accuracy": 0.2,
+  "hypothesis_diversity": 0.72305,
+  "contradiction_precision": 0.0,
+  "contradiction_recall": 0.0,
+  "decision_correctness": 0.8,
+  "calibration_error": 0.3,
+  "abstention_quality": {
+    "abstained": 5,
+    "correct_abstentions": 4,
+    "wrong_leading_abstained": 4,
+    "wrong_leading_acted": 0
+  },
+  "action_evidence_yield": 0.0,
+  "investigation_efficiency": 0.2,
+  "evidence_utilization": 1.0,
+  "evidence_trace_coverage": 1.0,
+  "mean_latency_seconds": 0.1618,
+  "legacy_hypothesis_ranking_accuracy": 0.0,
+  "legacy_decision_accuracy": 0.0,
+  "per_case": [
+    {
+      "case_id": "case_3fb46cd11ccf",
+      "case_dir": "/home/z/my-project/ice/benchmark/cases/case_01_latency",
+      "induction_path": "deterministic",
+      "leading_hypothesis_statement": "A resource (connections, memory, threads, queue capacity) is being exhausted until the system degrades (observed signals: latency, pool, connection, queue, p95; case focus: after cause checkout deploy)",
+      "leading_hypothesis_confidence": 0.5,
+      "top3_hypothesis_statements": [
+        "A resource (connections, memory, threads, queue capacity) is being exhausted until the system degrades (observed signals: latency, pool, connection, queue, p95; case focus: after cause checkout deploy)",
+        "Divergent or stale data between replicas/caches produces the observed inconsistency (observed signals: cache, duplicate; case focus: after cause checkout deploy)"
+      ],
+      "leading_matches_root_cause": true,
+      "top3_matches_root_cause": true,
+      "hypothesis_count": 2,
+      "hypothesis_diversity": 0.7273,
+      "contradiction_count": 0,
+      "detected_contradiction_pairs": [],
+      "decision_type": "ABSTAIN",
+      "decision_confidence": 0.5,
+      "decision_correct": false,
+      "gap_count": 0,
+      "etc": 1.0,
+      "claim_count": 36,
+      "evidence_count": 5,
+      "action_count": 0,
+      "executed_action_outcomes": [],
+      "useful_action_evidence": 0,
+      "llm_usage": {
+        "total_calls": 0,
+        "total_tokens_in": 0,
+        "total_tokens_out": 0,
+        "by_operation": {},
+        "by_role": {}
+      },
+      "duration_seconds": 0.235,
+      "hidden_resolution": {
+        "root_cause": "Connection pool exhaustion due to misconfigured max_connections (100\u219220) in deployment v42",
+        "primary_hypothesis": "Connection pool regression",
+        "secondary_hypotheses": [
+          "Cache invalidation bug",
+          "Regional infrastructure"
+        ],
+        "contradictions": [
+          {
+            "claim_a": "Cache hit rate dropped",
+            "claim_b": "Cache hit rate unchanged",
+            "resolution": "The drop was temporary during the deployment window"
+          }
+        ],
+        "decision": "Rollback deployment v42 and restore max_connections to 100"
+      }
+    },
+    {
+      "case_id": "case_10cbb0cbec1c",
+      "case_dir": "/home/z/my-project/ice/benchmark/cases/case_02_memory_leak",
+      "induction_path": "deterministic",
+      "leading_hypothesis_statement": "A resource (connections, memory, threads, queue capacity) is being exhausted until the system degrades (observed signals: memory, leak, oom; case focus: after api began cause)",
+      "leading_hypothesis_confidence": 0.5,
+      "top3_hypothesis_statements": [
+        "A resource (connections, memory, threads, queue capacity) is being exhausted until the system degrades (observed signals: memory, leak, oom; case focus: after api began cause)",
+        "Divergent or stale data between replicas/caches produces the observed inconsistency (observed signals: stale, cache, duplicate; case focus: after api began cause)"
+      ],
+      "leading_matches_root_cause": false,
+      "top3_matches_root_cause": false,
+      "hypothesis_count": 2,
+      "hypothesis_diversity": 0.7188,
+      "contradiction_count": 0,
+      "detected_contradiction_pairs": [],
+      "decision_type": "ABSTAIN",
+      "decision_confidence": 0.5,
+      "decision_correct": true,
+      "gap_count": 0,
+      "etc": 1.0,
+      "claim_count": 28,
+      "evidence_count": 4,
+      "action_count": 0,
+      "executed_action_outcomes": [],
+      "useful_action_evidence": 0,
+      "llm_usage": {
+        "total_calls": 0,
+        "total_tokens_in": 0,
+        "total_tokens_out": 0,
+        "by_operation": {},
+        "by_role": {}
+      },
+      "duration_seconds": 0.203,
+      "hidden_resolution": {
+        "root_cause": "Response caching layer retains request objects indefinitely",
+        "primary_hypothesis": "Response cache retains request objects",
+        "secondary_hypotheses": [
+          "GC tuning issue",
+          "Traffic volume increase"
+        ],
+        "contradictions": [
+          {
+            "claim_a": "Garbage collection is healthy and keeps up with the allocation rate",
+            "claim_b": "Garbage collection is misconfigured and causes the memory growth",
+            "resolution": "The heap dump shows the retained objects are reachable from the cache; GC has nothing to collect"
+          }
+        ],
+        "decision": "Disable the response caching layer and add a TTL with an eviction policy for cached entries"
+      }
+    },
+    {
+      "case_id": "case_9b04418a4230",
+      "case_dir": "/home/z/my-project/ice/benchmark/cases/case_03_auth_failure",
+      "induction_path": "deterministic",
+      "leading_hypothesis_statement": "A credential, certificate or permission expired or rotated incorrectly (observed signals: auth, certificate, cert, token; case focus: after began cause certificate)",
+      "leading_hypothesis_confidence": 0.5,
+      "top3_hypothesis_statements": [
+        "A credential, certificate or permission expired or rotated incorrectly (observed signals: auth, certificate, cert, token; case focus: after began cause certificate)"
+      ],
+      "leading_matches_root_cause": false,
+      "top3_matches_root_cause": false,
+      "hypothesis_count": 1,
+      "hypothesis_diversity": null,
+      "contradiction_count": 0,
+      "detected_contradiction_pairs": [],
+      "decision_type": "ABSTAIN",
+      "decision_confidence": 0.5,
+      "decision_correct": true,
+      "gap_count": 0,
+      "etc": 1.0,
+      "claim_count": 28,
+      "evidence_count": 4,
+      "action_count": 0,
+      "executed_action_outcomes": [],
+      "useful_action_evidence": 0,
+      "llm_usage": {
+        "total_calls": 0,
+        "total_tokens_in": 0,
+        "total_tokens_out": 0,
+        "by_operation": {},
+        "by_role": {}
+      },
+      "duration_seconds": 0.189,
+      "hidden_resolution": {
+        "root_cause": "Stale RSA certificate references in 2 of 6 backend services",
+        "primary_hypothesis": "Stale certificate reference in backend services",
+        "secondary_hypotheses": [
+          "Clock skew",
+          "Token signing bug"
+        ],
+        "contradictions": [
+          {
+            "claim_a": "All services present the new certificate",
+            "claim_b": "Two services present the old certificate",
+            "resolution": "The config audit found local override files pinning the old RSA cert on backend-2 and backend-5"
+          }
+        ],
+        "decision": "Roll backend-2 and backend-5 to the new ECDSA certificate and remove the pinned cert paths from their config overrides"
+      }
+    },
+    {
+      "case_id": "case_7336f741ea8f",
+      "case_dir": "/home/z/my-project/ice/benchmark/cases/case_04_data_inconsistency",
+      "induction_path": "deterministic",
+      "leading_hypothesis_statement": "A recent deployment introduced a regression that caused the observed problem (observed signals: deploy, release; case focus: 12k account and cause)",
+      "leading_hypothesis_confidence": 0.5,
+      "top3_hypothesis_statements": [
+        "A recent deployment introduced a regression that caused the observed problem (observed signals: deploy, release; case focus: 12k account and cause)"
+      ],
+      "leading_matches_root_cause": false,
+      "top3_matches_root_cause": false,
+      "hypothesis_count": 1,
+      "hypothesis_diversity": null,
+      "contradiction_count": 0,
+      "detected_contradiction_pairs": [],
+      "decision_type": "ABSTAIN",
+      "decision_confidence": 0.5,
+      "decision_correct": true,
+      "gap_count": 0,
+      "etc": 1.0,
+      "claim_count": 27,
+      "evidence_count": 4,
+      "action_count": 0,
+      "executed_action_outcomes": [],
+      "useful_action_evidence": 0,
+      "llm_usage": {
+        "total_calls": 0,
+        "total_tokens_in": 0,
+        "total_tokens_out": 0,
+        "by_operation": {},
+        "by_role": {}
+      },
+      "duration_seconds": 0.097,
+      "hidden_resolution": {
+        "root_cause": "Migration 004 renamed user_status to account_state without updating the reconciliation job's SQL",
+        "primary_hypothesis": "Schema migration broke the reconciliation job",
+        "secondary_hypotheses": [
+          "Job scheduler failure",
+          "Replication lag"
+        ],
+        "contradictions": [
+          {
+            "claim_a": "The reconciliation job is idempotent and stable",
+            "claim_b": "The reconciliation job failed after the deploy",
+            "resolution": "The stability documentation at 10:00 was stale; migration 004 at 12:00 renamed the column the job's SQL reads"
+          }
+        ],
+        "decision": "Patch the reconciliation job's SQL to use account_state, backfill the 12k NULL rows, and add the job's SQL repository to the migration reference scan"
+      }
+    },
+    {
+      "case_id": "case_8ca8e64dc9d7",
+      "case_dir": "/home/z/my-project/ice/benchmark/cases/case_05_deploy_loop",
+      "induction_path": "deterministic",
+      "leading_hypothesis_statement": "A recent deployment introduced a regression that caused the observed problem (observed signals: deploy, deployment, release; case focus: cause every human identify)",
+      "leading_hypothesis_confidence": 0.5,
+      "top3_hypothesis_statements": [
+        "A recent deployment introduced a regression that caused the observed problem (observed signals: deploy, deployment, release; case focus: cause every human identify)"
+      ],
+      "leading_matches_root_cause": false,
+      "top3_matches_root_cause": false,
+      "hypothesis_count": 1,
+      "hypothesis_diversity": null,
+      "contradiction_count": 0,
+      "detected_contradiction_pairs": [],
+      "decision_type": "ABSTAIN",
+      "decision_confidence": 0.5,
+      "decision_correct": true,
+      "gap_count": 0,
+      "etc": 1.0,
+      "claim_count": 28,
+      "evidence_count": 4,
+      "action_count": 0,
+      "executed_action_outcomes": [],
+      "useful_action_evidence": 0,
+      "llm_usage": {
+        "total_calls": 0,
+        "total_tokens_in": 0,
+        "total_tokens_out": 0,
+        "by_operation": {},
+        "by_role": {}
+      },
+      "duration_seconds": 0.085,
+      "hidden_resolution": {
+        "root_cause": "Load balancer health check probes the old port after the service moved",
+        "primary_hypothesis": "Stale health-check port in load balancer config",
+        "secondary_hypotheses": [
+          "Autoscaler bug",
+          "Memory pressure crash loop"
+        ],
+        "contradictions": [
+          {
+            "claim_a": "The service is unhealthy because the health check fails",
+            "claim_b": "The service is healthy on the new port",
+            "resolution": "The probe targets the old port 8080; the endpoint moved to 9090 in release r310, so the failures are false negatives"
+          }
+        ],
+        "decision": "Update the staging load balancer health check to probe /api/health on port 9090 and pause the auto-rollback loop until the probe is fixed"
+      }
+    }
+  ]
+}

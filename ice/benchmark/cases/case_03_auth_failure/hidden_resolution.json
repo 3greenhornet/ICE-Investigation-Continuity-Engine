@@ -1,0 +1,13 @@
+{
+  "root_cause": "Stale RSA certificate references in 2 of 6 backend services",
+  "primary_hypothesis": "Stale certificate reference in backend services",
+  "secondary_hypotheses": ["Clock skew", "Token signing bug"],
+  "contradictions": [
+    {
+      "claim_a": "All services present the new certificate",
+      "claim_b": "Two services present the old certificate",
+      "resolution": "The config audit found local override files pinning the old RSA cert on backend-2 and backend-5"
+    }
+  ],
+  "decision": "Roll backend-2 and backend-5 to the new ECDSA certificate and remove the pinned cert paths from their config overrides"
+}

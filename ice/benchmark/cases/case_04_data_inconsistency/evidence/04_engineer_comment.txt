@@ -1,0 +1,1 @@
+The reconciliation job's SQL still references user_status. The job ran fine at 00:00 before the deploy, and the deploy at 12:00 renamed the column without updating the job. The scheduler isn't the problem — the job started on time, it just fails on the renamed column. The 10:00 doc is simply stale; it predates the migration.

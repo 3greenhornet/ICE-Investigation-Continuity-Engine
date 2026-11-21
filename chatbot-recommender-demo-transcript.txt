@@ -1,0 +1,111 @@
+
+==============================================================================
+  THE DIVERSITY-FIRST CHATBOT RECOMMENDER -- live demo
+==============================================================================
+Three mechanisms, each backed by a real open-source engine:
+  1. similar-but-different : Qdrant retrieval + networkx category hops + MMR
+  2. wildcards             : Mab2Rec LinTS contextual bandit over 5 arms
+  3. anti-repetition       : hard seen-set + Hari semantic-refractory port
+
+Engines live for this session:
+  vector    -> qdrant (embedded)
+  bandit    -> mab2rec (LinTS)
+  graph     -> networkx (embedded)
+  embedder  -> tfidf (scikit-learn)
+  catalog   -> 101 items, 13 categories
+
+==============================================================================
+  TURN 1 -- user talks about paintings; bot does NOT mirror
+==============================================================================
+Not just more painting -- from its neighbourhood (graph hop):
+- "Understanding the Zone System" [video, photography] by Lamplight Media (12,000 followers, 9,760 plays, 1y old)
+    why: neighbour category painting -> photography (hop 1, relevance 0.09)
+- "Brutalism: Concrete and Controversy" [video, architecture] by Kanal Wissen (220,000 followers, 1,038,085 plays, 1y old)
+    why: neighbour category painting -> architecture (hop 1, relevance 0.08)
+- "Woodcarving with Three Chisels" [video, sculpture] by Modern Craft TV (155,000 followers, 1,530,680 plays, 0y old)
+    why: neighbour category painting -> sculpture (hop 1, relevance 0.09)
+- "Public Sculpture and Public Space" [video, sculpture] by Kanal Wissen (220,000 followers, 1,153,041 plays, 0y old)
+    why: neighbour category painting -> sculpture (hop 1, relevance 0.07)
+Wildcard drop [pure_random] -- no relation to what you know:
+- "When Chairs Went Plastic" [article, design_history] by Two Desk Studio (9,400 followers, 10,994 plays, 1y old)
+    why: pure random wildcard -- no targeting at all
+Feedback? Say 'liked <n>' / 'ignored <n>' / 'disliked <n>' (1-based, top to bottom).
+
+[mechanism check] focus=painting, arms=pure_random, exploit=4, wildcard=1
+
+[user feedback] liked the wildcard
+
+==============================================================================
+  TURN 2 -- user switches to coding; neighbourhood shifts
+==============================================================================
+Not just more coding -- from its neighbourhood (graph hop):
+- "Standard Time and Its Discontents" [video, science] by postsfromtheattic (8 followers, 759 plays, 7y old)
+    why: neighbour category coding -> science (hop 1, relevance 0.10)
+- "Last Speakers of a Dying Language" [video, documentary] by Backroom Essays (1,900 followers, 17,005 plays, 2y old)
+    why: neighbour category coding -> documentary (hop 1, relevance 0.00)
+- "Soil Is More Alive Than You Think" [video, science] by Backroom Essays (1,900 followers, 27,936 plays, 0y old)
+    why: neighbour category coding -> science (hop 1, relevance 0.00)
+- "Silent Reel 2009: A Town's Only Tape" [video, documentary] by silent_reel_2009 (22 followers, 98 plays, 14y old)
+    why: neighbour category coding -> documentary (hop 1, relevance 0.00)
+Wildcard drop [orthogonal_topic] -- no relation to what you know:
+- "Street Photography Without Creeping People Out" [video, photography] by Kanal Wissen (220,000 followers, 2,148,796 plays, 0y old)
+    why: orthogonal-topic wildcard: photography is graph-far from coding
+Feedback? Say 'liked <n>' / 'ignored <n>' / 'disliked <n>' (1-based, top to bottom).
+
+[mechanism check] focus=coding
+
+==============================================================================
+  TURNS 3-7 -- more turns: nothing repeats, wildcards keep firing
+==============================================================================
+
+> street photography and composition  [wildcard: orthogonal_topic]
+   Vermeer and the Camera Obscura [painting] (24,636 plays)
+   Ballpoint Pens and Democracy [design_history] (204 plays)
+   Brutalism: Concrete and Controversy (2013 revisited) [architecture] (176 plays)
+   Live From a Rooftop [music_video] (24,357 plays)
+ W Grandmother's Recipe, Written Down [cooking] (2,355,714 plays)
+
+> brutalist architecture  [wildcard: pure_random]
+   Circular Line Maps of the World [metro_maps] (672 plays)
+   Large Format on a Budget (2010 revisited) [photography] (82 plays)
+   Color Theory That Actually Sticks [painting] (21,600 plays)
+   Bronze Casting in Three Steps [sculpture] (842,214 plays)
+ W How Album Covers Got Weird [music_video] (2,049,264 plays)
+
+> documentaries about lighthouses  [wildcard: unknown_author]
+   The Slowest Experiments in Science [science] (385 plays)
+   Read a Codebase Like a Novel [coding] (1,493,697 plays)
+   Postmarks From a Vanished Country [philately] (112 plays)
+   One-Take Music Videos [music_video] (45,403 plays)
+ W Bread Science: Hydration Explained (2013 revisited) [cooking] (77 plays)
+
+> bread baking science  [wildcard: orthogonal_topic]
+   Inside a Seed Vault [documentary] (2,270,460 plays)
+   Saving Seeds Like It's 1900 [gardening] (1,188,489 plays)
+   SQLite Is Enough for Most Things [coding] (10,349 plays)
+   A Tiny Interpreter in 200 Lines [coding] (1,177,534 plays)
+ W Wire Armatures That Hold [sculpture] (1,657,751 plays)
+
+> stamp collecting history  [wildcard: pure_random]
+   The Men Who Maintained Lighthouses [documentary] (711 plays)
+   The Maps That Lied [documentary] (2,316,287 plays)
+   Night Trains of Europe [documentary] (313 plays)
+   Inside a Seed Vault (2008 revisited) [documentary] (138 plays)
+ W Bread Science: Hydration Explained [cooking] (39,493 plays)
+
+==============================================================================
+  SESSION STATS -- what the mechanisms actually did
+==============================================================================
+turns completed      : 7
+distinct items shown : 35 (zero repeats, guaranteed)
+category history     : ['painting', 'coding', 'photography', 'architecture', 'documentary', 'science', 'philately']
+bandit engine        : mab2rec (LinTS)
+
+Wildcard arm statistics (the bandit's learning state):
+  none               (never pulled)
+  long_tail_old      (never pulled)
+  unknown_author     pulls=1  avg_reward=1.00
+  orthogonal_topic   pulls=2  avg_reward=1.00
+  pure_random        pulls=3  avg_reward=1.00
+
+Every recommendation above carries its reason; ask the bot 'why' anytime. Swap engines via RecommenderConfig (bandit_engine='vowpal_wabbit', graph_engine='neo4j', ...) or point GORSE_ENDPOINT at a live Gorse server.

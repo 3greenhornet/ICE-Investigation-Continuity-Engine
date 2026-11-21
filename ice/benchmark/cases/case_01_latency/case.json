@@ -1,0 +1,14 @@
+{
+  "case_id": "case_01_latency",
+  "title": "Checkout latency regression",
+  "objective": "Identify the root cause of the p95 latency increase in the checkout service after deployment v42",
+  "required_confidence": 0.85,
+  "decision_deadline": "2026-09-20T16:00:00Z",
+  "evidence_files": [
+    {"file": "evidence/01_incident_report.md", "order": 1},
+    {"file": "evidence/02_deployment_notes.md", "order": 2},
+    {"file": "evidence/03_engineer_comment.txt", "order": 3},
+    {"file": "evidence/04_metrics_snapshot.csv", "order": 4},
+    {"file": "evidence/05_duplicate_report.md", "order": 5}
+  ]
+}

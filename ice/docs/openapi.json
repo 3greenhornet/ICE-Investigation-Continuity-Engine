@@ -1,0 +1,5245 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Investigation Continuity Engine",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/api/v1/cases": {
+      "post": {
+        "tags": [
+          "cases"
+        ],
+        "summary": "Create Case Route",
+        "operationId": "create_case_route_api_v1_cases_post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CaseCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CaseResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "cases"
+        ],
+        "summary": "List Cases Route",
+        "operationId": "list_cases_route_api_v1_cases_get",
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "name": "case_type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Case Type"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 1000,
+              "minimum": 1,
+              "default": 50,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CaseResponse"
+                  },
+                  "title": "Response List Cases Route Api V1 Cases Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/cases/{case_id}": {
+      "get": {
+        "tags": [
+          "cases"
+        ],
+        "summary": "Get Case Route",
+        "operationId": "get_case_route_api_v1_cases__case_id__get",
+        "parameters": [
+          {
+            "name": "case_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Case Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CaseResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "cases"
+        ],
+        "summary": "Update Case Route",
+        "operationId": "update_case_route_api_v1_cases__case_id__patch",
+        "parameters": [
+          {
+            "name": "case_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Case Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CaseUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CaseResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/cases/{case_id}/summary": {
+      "get": {
+        "tags": [
+          "cases"
+        ],
+        "summary": "Case Summary Route",
+        "operationId": "case_summary_route_api_v1_cases__case_id__summary_get",
+        "parameters": [
+          {
+            "name": "case_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Case Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CaseSummary"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/cases/{case_id}/evidence": {
+      "post": {
+        "tags": [
+          "evidence"
+        ],
+        "summary": "Add Evidence Route",
+        "operationId": "add_evidence_route_api_v1_cases__case_id__evidence_post",
+        "parameters": [
+          {
+            "name": "case_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Case Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EvidenceCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvidenceResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "evidence"
+        ],
+        "summary": "List Evidence Route",
+        "operationId": "list_evidence_route_api_v1_cases__case_id__evidence_get",
+        "parameters": [
+          {
+            "name": "case_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Case Id"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/EvidenceResponse"
+                  },
+                  "title": "Response List Evidence Route Api V1 Cases  Case Id  Evidence Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/cases/{case_id}/evidence/from-llm": {
+      "post": {
+        "tags": [
+          "evidence"
+        ],
+        "summary": "Add External Analysis Route",
+        "description": "File an analysis the user obtained from an external LLM (Part 2 \u00a72.4).\n\nThe doc's route body imports ingest_external_analysis inline; we keep\nthe deps discipline instead and go through EvidenceService.ingest_external\n(same function object). Validation errors from the engine (empty\nllm_name/prompt/analysis) surface as 400 INVALID_REQUEST via ERROR_MAP.",
+        "operationId": "add_external_analysis_route_api_v1_cases__case_id__evidence_from_llm_post",
+        "parameters": [
+          {
+            "name": "case_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Case Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExternalAnalysisCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvidenceResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/cases/{case_id}/evidence/upload": {
+      "post": {
+        "tags": [
+          "evidence"
+        ],
+        "summary": "Upload Evidence Route",
+        "operationId": "upload_evidence_route_api_v1_cases__case_id__evidence_upload_post",
+        "parameters": [
+          {
+            "name": "case_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Case Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_upload_evidence_route_api_v1_cases__case_id__evidence_upload_post"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/EvidenceResponse"
+                  },
+                  "title": "Response Upload Evidence Route Api V1 Cases  Case Id  Evidence Upload Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/cases/{case_id}/evidence/url": {
+      "post": {
+        "tags": [
+          "evidence"
+        ],
+        "summary": "Url Evidence Route",
+        "operationId": "url_evidence_route_api_v1_cases__case_id__evidence_url_post",
+        "parameters": [
+          {
+            "name": "case_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Case Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EvidenceFromURL"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/EvidenceResponse"
+                  },
+                  "title": "Response Url Evidence Route Api V1 Cases  Case Id  Evidence Url Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/evidence/{evidence_id}": {
+      "get": {
+        "tags": [
+          "evidence"
+        ],
+        "summary": "Get Evidence Route",
+        "operationId": "get_evidence_route_api_v1_evidence__evidence_id__get",
+        "parameters": [
+          {
+            "name": "evidence_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Evidence Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvidenceResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/evidence/{evidence_id}/status": {
+      "patch": {
+        "tags": [
+          "evidence"
+        ],
+        "summary": "Update Evidence Status Route",
+        "operationId": "update_evidence_status_route_api_v1_evidence__evidence_id__status_patch",
+        "parameters": [
+          {
+            "name": "evidence_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Evidence Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EvidenceStatusUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvidenceResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/evidence/{evidence_id}/supersede": {
+      "post": {
+        "tags": [
+          "evidence"
+        ],
+        "summary": "Supersede Evidence Route",
+        "operationId": "supersede_evidence_route_api_v1_evidence__evidence_id__supersede_post",
+        "parameters": [
+          {
+            "name": "evidence_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Evidence Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SupersedeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvidenceResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/evidence/{evidence_id}/chain": {
+      "get": {
+        "tags": [
+          "evidence"
+        ],
+        "summary": "Evidence Chain Route",
+        "operationId": "evidence_chain_route_api_v1_evidence__evidence_id__chain_get",
+        "parameters": [
+          {
+            "name": "evidence_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Evidence Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProvenanceChain"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/evidence/{evidence_id}/extract-claims": {
+      "post": {
+        "tags": [
+          "claims"
+        ],
+        "summary": "Extract Claims Route",
+        "operationId": "extract_claims_route_api_v1_evidence__evidence_id__extract_claims_post",
+        "parameters": [
+          {
+            "name": "evidence_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Evidence Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ClaimResponse"
+                  },
+                  "title": "Response Extract Claims Route Api V1 Evidence  Evidence Id  Extract Claims Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/claims": {
+      "post": {
+        "tags": [
+          "claims"
+        ],
+        "summary": "Create Claim Route",
+        "operationId": "create_claim_route_api_v1_claims_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClaimCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClaimResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/claims/{claim_id}/link": {
+      "post": {
+        "tags": [
+          "claims"
+        ],
+        "summary": "Link Claim Route",
+        "operationId": "link_claim_route_api_v1_claims__claim_id__link_post",
+        "parameters": [
+          {
+            "name": "claim_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Claim Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LinkEvidenceRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClaimResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/cases/{case_id}/claims": {
+      "get": {
+        "tags": [
+          "claims"
+        ],
+        "summary": "List Claims Route",
+        "operationId": "list_claims_route_api_v1_cases__case_id__claims_get",
+        "parameters": [
+          {
+            "name": "case_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Case Id"
+            }
+          },
+          {
+            "name": "hypothesis_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Hypothesis Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ClaimResponse"
+                  },
+                  "title": "Response List Claims Route Api V1 Cases  Case Id  Claims Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/claims/{claim_id}": {
+      "get": {
+        "tags": [
+          "claims"
+        ],
+        "summary": "Get Claim Route",
+        "operationId": "get_claim_route_api_v1_claims__claim_id__get",
+        "parameters": [
+          {
+            "name": "claim_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Claim Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClaimResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/cases/{case_id}/hypotheses": {
+      "post": {
+        "tags": [
+          "hypotheses"
+        ],
+        "summary": "Create Hypothesis Route",
+        "operationId": "create_hypothesis_route_api_v1_cases__case_id__hypotheses_post",
+        "parameters": [
+          {
+            "name": "case_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Case Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HypothesisCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HypothesisResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "hypotheses"
+        ],
+        "summary": "List Hypotheses Route",
+        "operationId": "list_hypotheses_route_api_v1_cases__case_id__hypotheses_get",
+        "parameters": [
+          {
+            "name": "case_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Case Id"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/HypothesisResponse"
+                  },
+                  "title": "Response List Hypotheses Route Api V1 Cases  Case Id  Hypotheses Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/hypotheses/{hypothesis_id}": {
+      "get": {
+        "tags": [
+          "hypotheses"
+        ],
+        "summary": "Get Hypothesis Route",
+        "operationId": "get_hypothesis_route_api_v1_hypotheses__hypothesis_id__get",
+        "parameters": [
+          {
+            "name": "hypothesis_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Hypothesis Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HypothesisResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/hypotheses/{hypothesis_id}/versions": {
+      "get": {
+        "tags": [
+          "hypotheses"
+        ],
+        "summary": "Get Versions Route",
+        "operationId": "get_versions_route_api_v1_hypotheses__hypothesis_id__versions_get",
+        "parameters": [
+          {
+            "name": "hypothesis_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Hypothesis Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/HypothesisVersionResponse"
+                  },
+                  "title": "Response Get Versions Route Api V1 Hypotheses  Hypothesis Id  Versions Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/hypotheses/{hypothesis_id}/recompute": {
+      "post": {
+        "tags": [
+          "hypotheses"
+        ],
+        "summary": "Recompute Route",
+        "operationId": "recompute_route_api_v1_hypotheses__hypothesis_id__recompute_post",
+        "parameters": [
+          {
+            "name": "hypothesis_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Hypothesis Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/HypothesisVersionResponse"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "title": "Response Recompute Route Api V1 Hypotheses  Hypothesis Id  Recompute Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/hypotheses/{hypothesis_id}/status": {
+      "patch": {
+        "tags": [
+          "hypotheses"
+        ],
+        "summary": "Update Status Route",
+        "operationId": "update_status_route_api_v1_hypotheses__hypothesis_id__status_patch",
+        "parameters": [
+          {
+            "name": "hypothesis_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Hypothesis Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HypothesisStatusUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HypothesisResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/hypotheses/{hypothesis_id}/graph": {
+      "get": {
+        "tags": [
+          "hypotheses"
+        ],
+        "summary": "Hypothesis Graph Route",
+        "operationId": "hypothesis_graph_route_api_v1_hypotheses__hypothesis_id__graph_get",
+        "parameters": [
+          {
+            "name": "hypothesis_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Hypothesis Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HypothesisGraph"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/cases/{case_id}/contradictions": {
+      "get": {
+        "tags": [
+          "contradictions"
+        ],
+        "summary": "List Contradictions Route",
+        "operationId": "list_contradictions_route_api_v1_cases__case_id__contradictions_get",
+        "parameters": [
+          {
+            "name": "case_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Case Id"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": "active",
+              "title": "Status"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ContradictionResponse"
+                  },
+                  "title": "Response List Contradictions Route Api V1 Cases  Case Id  Contradictions Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/contradictions/detect": {
+      "post": {
+        "tags": [
+          "contradictions"
+        ],
+        "summary": "Detect Contradiction Route",
+        "operationId": "detect_contradiction_route_api_v1_contradictions_detect_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DetectRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/ContradictionResponse"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "title": "Response Detect Contradiction Route Api V1 Contradictions Detect Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/contradictions/{contradiction_id}": {
+      "get": {
+        "tags": [
+          "contradictions"
+        ],
+        "summary": "Get Contradiction Route",
+        "operationId": "get_contradiction_route_api_v1_contradictions__contradiction_id__get",
+        "parameters": [
+          {
+            "name": "contradiction_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Contradiction Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContradictionResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/contradictions/{contradiction_id}/resolve": {
+      "post": {
+        "tags": [
+          "contradictions"
+        ],
+        "summary": "Resolve Contradiction Route",
+        "operationId": "resolve_contradiction_route_api_v1_contradictions__contradiction_id__resolve_post",
+        "parameters": [
+          {
+            "name": "contradiction_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Contradiction Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResolveRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContradictionResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/cases/{case_id}/gaps": {
+      "get": {
+        "tags": [
+          "gaps"
+        ],
+        "summary": "List Gaps Route",
+        "operationId": "list_gaps_route_api_v1_cases__case_id__gaps_get",
+        "parameters": [
+          {
+            "name": "case_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Case Id"
+            }
+          },
+          {
+            "name": "resolved",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "title": "Resolved"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/GapResponse"
+                  },
+                  "title": "Response List Gaps Route Api V1 Cases  Case Id  Gaps Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "gaps"
+        ],
+        "summary": "Create Gap Route",
+        "operationId": "create_gap_route_api_v1_cases__case_id__gaps_post",
+        "parameters": [
+          {
+            "name": "case_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Case Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GapCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GapResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/gaps/{gap_id}": {
+      "get": {
+        "tags": [
+          "gaps"
+        ],
+        "summary": "Get Gap Route",
+        "operationId": "get_gap_route_api_v1_gaps__gap_id__get",
+        "parameters": [
+          {
+            "name": "gap_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Gap Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GapResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/gaps/{gap_id}/resolve": {
+      "post": {
+        "tags": [
+          "gaps"
+        ],
+        "summary": "Resolve Gap Route",
+        "operationId": "resolve_gap_route_api_v1_gaps__gap_id__resolve_post",
+        "parameters": [
+          {
+            "name": "gap_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Gap Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GapResolve"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GapResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/cases/{case_id}/investigate": {
+      "post": {
+        "tags": [
+          "investigation"
+        ],
+        "summary": "Investigate Route",
+        "operationId": "investigate_route_api_v1_cases__case_id__investigate_post",
+        "parameters": [
+          {
+            "name": "case_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Case Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InvestigateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvestigationResult"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/cases/{case_id}/state": {
+      "get": {
+        "tags": [
+          "investigation"
+        ],
+        "summary": "Case State Route",
+        "operationId": "case_state_route_api_v1_cases__case_id__state_get",
+        "parameters": [
+          {
+            "name": "case_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Case Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CaseSummary"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/cases/{case_id}/suggestions": {
+      "get": {
+        "tags": [
+          "investigation"
+        ],
+        "summary": "Suggestions Route",
+        "description": "Endogenous \"the system noticed\" candidates (Part 2 \u00a75.2).\n\nDelegates to collect_case_endogenous_candidates (Part 2 \u00a75.1): aged\ninvestigation threads, uncited evidence, stuck hypotheses and aged\ncontradictions. Raises DatabaseUnavailableError (\u2192 503 via ERROR_MAP)\nwhen the pool is down \u2014 an empty list genuinely means \"nothing needs\nattention\".",
+        "operationId": "suggestions_route_api_v1_cases__case_id__suggestions_get",
+        "parameters": [
+          {
+            "name": "case_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Case Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/EndogenousSuggestion"
+                  },
+                  "title": "Response Suggestions Route Api V1 Cases  Case Id  Suggestions Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/cases/{case_id}/threads/debt": {
+      "get": {
+        "tags": [
+          "investigation"
+        ],
+        "summary": "Threads Debt Route",
+        "description": "Active investigation threads with their debt scores (Part 2 \u00a78.3).\n\ndebt = strength \u00d7 min(age_days, 30) \u00d7 decision_impact \u00d7 uncertainty\n(InvestigationThreadRegistry.compute_debt), sorted by debt descending.\nThe registry's _ensure_loaded raises DatabaseUnavailableError (\u2192 503\nvia ERROR_MAP) when the pool is down.",
+        "operationId": "threads_debt_route_api_v1_cases__case_id__threads_debt_get",
+        "parameters": [
+          {
+            "name": "case_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Case Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": true
+                  },
+                  "title": "Response Threads Debt Route Api V1 Cases  Case Id  Threads Debt Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/cases/{case_id}/proposed-edges": {
+      "get": {
+        "tags": [
+          "investigation"
+        ],
+        "summary": "List Proposed Edges Route",
+        "description": "Pending NLI-proposed claim\u2192hypothesis edges, newest first (\u00a710.4).",
+        "operationId": "list_proposed_edges_route_api_v1_cases__case_id__proposed_edges_get",
+        "parameters": [
+          {
+            "name": "case_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Case Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": true
+                  },
+                  "title": "Response List Proposed Edges Route Api V1 Cases  Case Id  Proposed Edges Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/proposed-edges/{edge_id}/accept": {
+      "post": {
+        "tags": [
+          "investigation"
+        ],
+        "summary": "Accept Proposed Edge Route",
+        "description": "Accept a proposed edge: write the real evidence_graph_edges row.\n\nError handling: pool-down raises DatabaseUnavailableError (\u2192 503\nDATABASE_UNAVAILABLE via ERROR_MAP). For missing/non-pending edges we\nkeep the doc's plain HTTPException (404/400) \u2014 proposed_edges has no\ntyped case_engine exception and inventing one for this thin review\nsurface would grow ERROR_MAP without engine buy-in.",
+        "operationId": "accept_proposed_edge_route_api_v1_proposed_edges__edge_id__accept_post",
+        "parameters": [
+          {
+            "name": "edge_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Edge Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Accept Proposed Edge Route Api V1 Proposed Edges  Edge Id  Accept Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/proposed-edges/{edge_id}/reject": {
+      "post": {
+        "tags": [
+          "investigation"
+        ],
+        "summary": "Reject Proposed Edge Route",
+        "description": "Reject a proposed edge: mark it rejected without touching the graph.",
+        "operationId": "reject_proposed_edge_route_api_v1_proposed_edges__edge_id__reject_post",
+        "parameters": [
+          {
+            "name": "edge_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Edge Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Reject Proposed Edge Route Api V1 Proposed Edges  Edge Id  Reject Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/cases/{case_id}/metrics": {
+      "get": {
+        "tags": [
+          "investigation"
+        ],
+        "summary": "Case Metrics Route",
+        "operationId": "case_metrics_route_api_v1_cases__case_id__metrics_get",
+        "parameters": [
+          {
+            "name": "case_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Case Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CaseMetrics"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/cases/{case_id}/consistency": {
+      "get": {
+        "tags": [
+          "investigation"
+        ],
+        "summary": "Case Consistency Route",
+        "operationId": "case_consistency_route_api_v1_cases__case_id__consistency_get",
+        "parameters": [
+          {
+            "name": "case_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Case Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConsistencyReport"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/cases/{case_id}/trace": {
+      "get": {
+        "tags": [
+          "investigation"
+        ],
+        "summary": "Case Trace Route",
+        "operationId": "case_trace_route_api_v1_cases__case_id__trace_get",
+        "parameters": [
+          {
+            "name": "case_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Case Id"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 1000,
+              "minimum": 1,
+              "default": 100,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CaseEventResponse"
+                  },
+                  "title": "Response Case Trace Route Api V1 Cases  Case Id  Trace Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/cases/{case_id}/actions": {
+      "get": {
+        "tags": [
+          "actions"
+        ],
+        "summary": "List Actions Route",
+        "operationId": "list_actions_route_api_v1_cases__case_id__actions_get",
+        "parameters": [
+          {
+            "name": "case_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Case Id"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "proposed",
+              "title": "Status"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ActionResponse"
+                  },
+                  "title": "Response List Actions Route Api V1 Cases  Case Id  Actions Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/actions/{action_id}": {
+      "get": {
+        "tags": [
+          "actions"
+        ],
+        "summary": "Get Action Route",
+        "operationId": "get_action_route_api_v1_actions__action_id__get",
+        "parameters": [
+          {
+            "name": "action_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Action Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActionResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "actions"
+        ],
+        "summary": "Edit Action Route",
+        "operationId": "edit_action_route_api_v1_actions__action_id__patch",
+        "parameters": [
+          {
+            "name": "action_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Action Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ActionEditRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActionResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/actions/{action_id}/approve": {
+      "post": {
+        "tags": [
+          "actions"
+        ],
+        "summary": "Approve Action Route",
+        "operationId": "approve_action_route_api_v1_actions__action_id__approve_post",
+        "parameters": [
+          {
+            "name": "action_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Action Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActionResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/actions/{action_id}/execute": {
+      "post": {
+        "tags": [
+          "actions"
+        ],
+        "summary": "Execute Action Route",
+        "operationId": "execute_action_route_api_v1_actions__action_id__execute_post",
+        "parameters": [
+          {
+            "name": "action_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Action Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActionResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/actions/{action_id}/reject": {
+      "post": {
+        "tags": [
+          "actions"
+        ],
+        "summary": "Reject Action Route",
+        "operationId": "reject_action_route_api_v1_actions__action_id__reject_post",
+        "parameters": [
+          {
+            "name": "action_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Action Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RejectRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActionResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/cases/{case_id}/decisions": {
+      "get": {
+        "tags": [
+          "decisions"
+        ],
+        "summary": "List Decisions Route",
+        "operationId": "list_decisions_route_api_v1_cases__case_id__decisions_get",
+        "parameters": [
+          {
+            "name": "case_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Case Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DecisionSummary"
+                  },
+                  "title": "Response List Decisions Route Api V1 Cases  Case Id  Decisions Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/decisions/{decision_id}/attribution": {
+      "get": {
+        "tags": [
+          "decisions"
+        ],
+        "summary": "Decision Attribution Route",
+        "operationId": "decision_attribution_route_api_v1_decisions__decision_id__attribution_get",
+        "parameters": [
+          {
+            "name": "decision_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Decision Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DecisionAttribution"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/cases/{case_id}/replay/counterfactual": {
+      "post": {
+        "tags": [
+          "replay"
+        ],
+        "summary": "Counterfactual Route",
+        "operationId": "counterfactual_route_api_v1_cases__case_id__replay_counterfactual_post",
+        "parameters": [
+          {
+            "name": "case_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Case Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CounterfactualRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CounterfactualResult"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/cases/{case_id}/events": {
+      "get": {
+        "tags": [
+          "replay"
+        ],
+        "summary": "Events Route",
+        "operationId": "events_route_api_v1_cases__case_id__events_get",
+        "parameters": [
+          {
+            "name": "case_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Case Id"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 1000,
+              "minimum": 1,
+              "default": 100,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "after_seq",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "After Seq"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CaseEventResponse"
+                  },
+                  "title": "Response Events Route Api V1 Cases  Case Id  Events Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/health": {
+      "get": {
+        "tags": [
+          "health"
+        ],
+        "summary": "Liveness",
+        "operationId": "liveness_api_v1_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/health/ready": {
+      "get": {
+        "tags": [
+          "health"
+        ],
+        "summary": "Readiness",
+        "operationId": "readiness_api_v1_health_ready_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ActionEditRequest": {
+        "properties": {
+          "target": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target"
+          },
+          "expected_outcome": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expected Outcome"
+          },
+          "cost_estimate": {
+            "anyOf": [
+              {
+                "type": "number",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cost Estimate"
+          },
+          "risk": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 1.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Risk"
+          }
+        },
+        "type": "object",
+        "title": "ActionEditRequest",
+        "description": "Partial edit of a proposed action (audit gap #10 \u2014 [Accept][Reject][Edit]).\n\nOnly fields explicitly provided are updated; None means \"leave unchanged\"."
+      },
+      "ActionResponse": {
+        "properties": {
+          "action_id": {
+            "type": "string",
+            "title": "Action Id"
+          },
+          "case_id": {
+            "type": "string",
+            "title": "Case Id"
+          },
+          "action_type": {
+            "type": "string",
+            "title": "Action Type"
+          },
+          "target": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target"
+          },
+          "expected_outcome": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expected Outcome"
+          },
+          "cost_estimate": {
+            "type": "number",
+            "title": "Cost Estimate"
+          },
+          "risk": {
+            "type": "number",
+            "title": "Risk"
+          },
+          "expected_information_gain": {
+            "type": "number",
+            "title": "Expected Information Gain"
+          },
+          "decision_impact": {
+            "type": "number",
+            "title": "Decision Impact"
+          },
+          "falsification_value": {
+            "type": "number",
+            "title": "Falsification Value"
+          },
+          "approval_required": {
+            "type": "boolean",
+            "title": "Approval Required"
+          },
+          "approval_class": {
+            "type": "string",
+            "title": "Approval Class"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "result_evidence_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Result Evidence Ids"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "completed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Completed At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "action_id",
+          "case_id",
+          "action_type",
+          "target",
+          "expected_outcome",
+          "cost_estimate",
+          "risk",
+          "expected_information_gain",
+          "decision_impact",
+          "falsification_value",
+          "approval_required",
+          "approval_class",
+          "status",
+          "result_evidence_ids",
+          "created_at",
+          "completed_at"
+        ],
+        "title": "ActionResponse"
+      },
+      "Body_upload_evidence_route_api_v1_cases__case_id__evidence_upload_post": {
+        "properties": {
+          "file": {
+            "type": "string",
+            "format": "binary",
+            "title": "File"
+          }
+        },
+        "type": "object",
+        "required": [
+          "file"
+        ],
+        "title": "Body_upload_evidence_route_api_v1_cases__case_id__evidence_upload_post"
+      },
+      "CaseCreate": {
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Title"
+          },
+          "objective": {
+            "type": "string",
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Objective"
+          },
+          "decision_deadline": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decision Deadline"
+          },
+          "required_confidence": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 1.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Required Confidence"
+          },
+          "cost_budget_tool_calls": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Cost Budget Tool Calls",
+            "default": 100
+          },
+          "cost_budget_tokens": {
+            "type": "integer",
+            "minimum": 1000.0,
+            "title": "Cost Budget Tokens",
+            "default": 500000
+          },
+          "case_type": {
+            "type": "string",
+            "enum": [
+              "debug",
+              "research",
+              "explore"
+            ],
+            "title": "Case Type",
+            "default": "debug"
+          }
+        },
+        "type": "object",
+        "required": [
+          "title",
+          "objective"
+        ],
+        "title": "CaseCreate"
+      },
+      "CaseEventResponse": {
+        "properties": {
+          "event_id": {
+            "type": "string",
+            "title": "Event Id"
+          },
+          "case_id": {
+            "type": "string",
+            "title": "Case Id"
+          },
+          "event_type": {
+            "type": "string",
+            "title": "Event Type"
+          },
+          "event_seq": {
+            "type": "integer",
+            "title": "Event Seq"
+          },
+          "conversation_turn": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Conversation Turn"
+          },
+          "wall_clock_time": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Wall Clock Time"
+          },
+          "payload": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Payload"
+          }
+        },
+        "type": "object",
+        "required": [
+          "event_id",
+          "case_id",
+          "event_type",
+          "event_seq",
+          "conversation_turn",
+          "wall_clock_time",
+          "payload"
+        ],
+        "title": "CaseEventResponse"
+      },
+      "CaseMetrics": {
+        "properties": {
+          "case_id": {
+            "type": "string",
+            "title": "Case Id"
+          },
+          "evidence_trace_coverage": {
+            "type": "number",
+            "title": "Evidence Trace Coverage",
+            "default": 0.0
+          },
+          "investigation_efficiency": {
+            "type": "number",
+            "title": "Investigation Efficiency",
+            "default": 0.0
+          },
+          "evidence_utilization": {
+            "type": "number",
+            "title": "Evidence Utilization",
+            "default": 0.0
+          },
+          "decision_counts_by_type": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "Decision Counts By Type"
+          },
+          "actions_by_status": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "Actions By Status"
+          }
+        },
+        "type": "object",
+        "required": [
+          "case_id"
+        ],
+        "title": "CaseMetrics",
+        "description": "Aggregated runtime metrics (case_engine.metrics.get_case_metrics)."
+      },
+      "CaseResponse": {
+        "properties": {
+          "case_id": {
+            "type": "string",
+            "title": "Case Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "objective": {
+            "type": "string",
+            "title": "Objective"
+          },
+          "decision_deadline": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decision Deadline"
+          },
+          "required_confidence": {
+            "type": "number",
+            "title": "Required Confidence"
+          },
+          "cost_budget_tool_calls": {
+            "type": "integer",
+            "title": "Cost Budget Tool Calls"
+          },
+          "cost_budget_tokens": {
+            "type": "integer",
+            "title": "Cost Budget Tokens"
+          },
+          "case_type": {
+            "type": "string",
+            "title": "Case Type",
+            "default": "debug"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "case_id",
+          "title",
+          "objective",
+          "decision_deadline",
+          "required_confidence",
+          "cost_budget_tool_calls",
+          "cost_budget_tokens",
+          "status",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "CaseResponse"
+      },
+      "CaseSummary": {
+        "properties": {
+          "case_id": {
+            "type": "string",
+            "title": "Case Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "objective": {
+            "type": "string",
+            "title": "Objective"
+          },
+          "case_type": {
+            "type": "string",
+            "title": "Case Type",
+            "default": "debug"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "required_confidence": {
+            "type": "number",
+            "title": "Required Confidence"
+          },
+          "decision_deadline": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decision Deadline"
+          },
+          "counts": {
+            "$ref": "#/components/schemas/CaseSummaryCounts"
+          },
+          "leading_hypothesis": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LeadingHypothesisSummary"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "next_action": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/NextActionSummary"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "case_id",
+          "title",
+          "objective",
+          "status",
+          "required_confidence",
+          "decision_deadline",
+          "counts",
+          "leading_hypothesis",
+          "next_action"
+        ],
+        "title": "CaseSummary"
+      },
+      "CaseSummaryCounts": {
+        "properties": {
+          "evidence_active": {
+            "type": "integer",
+            "title": "Evidence Active"
+          },
+          "evidence_total": {
+            "type": "integer",
+            "title": "Evidence Total"
+          },
+          "claims": {
+            "type": "integer",
+            "title": "Claims"
+          },
+          "hypotheses": {
+            "type": "integer",
+            "title": "Hypotheses"
+          },
+          "hypotheses_supported": {
+            "type": "integer",
+            "title": "Hypotheses Supported"
+          },
+          "contradictions_active": {
+            "type": "integer",
+            "title": "Contradictions Active"
+          },
+          "gaps_unresolved": {
+            "type": "integer",
+            "title": "Gaps Unresolved"
+          },
+          "threads_active": {
+            "type": "integer",
+            "title": "Threads Active"
+          },
+          "actions_proposed": {
+            "type": "integer",
+            "title": "Actions Proposed"
+          },
+          "decisions": {
+            "type": "integer",
+            "title": "Decisions"
+          },
+          "events": {
+            "type": "integer",
+            "title": "Events"
+          }
+        },
+        "type": "object",
+        "required": [
+          "evidence_active",
+          "evidence_total",
+          "claims",
+          "hypotheses",
+          "hypotheses_supported",
+          "contradictions_active",
+          "gaps_unresolved",
+          "threads_active",
+          "actions_proposed",
+          "decisions",
+          "events"
+        ],
+        "title": "CaseSummaryCounts"
+      },
+      "CaseUpdate": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "open",
+              "investigating",
+              "deciding",
+              "resolved",
+              "abandoned"
+            ],
+            "title": "Status"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status"
+        ],
+        "title": "CaseUpdate"
+      },
+      "ClaimCreate": {
+        "properties": {
+          "case_id": {
+            "type": "string",
+            "title": "Case Id"
+          },
+          "statement": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Statement"
+          },
+          "claim_type": {
+            "type": "string",
+            "enum": [
+              "MEASUREMENT",
+              "OBSERVATION",
+              "CORRELATION",
+              "TEMPORAL_ASSOCIATION",
+              "CAUSAL_CLAIM",
+              "INTERPRETATION",
+              "PREDICTION",
+              "ASSUMPTION"
+            ],
+            "title": "Claim Type"
+          },
+          "scope": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scope"
+          },
+          "valid_from": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Valid From"
+          },
+          "valid_until": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Valid Until"
+          },
+          "supporting_evidence_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Supporting Evidence Ids"
+          }
+        },
+        "type": "object",
+        "required": [
+          "case_id",
+          "statement",
+          "claim_type"
+        ],
+        "title": "ClaimCreate"
+      },
+      "ClaimResponse": {
+        "properties": {
+          "claim_id": {
+            "type": "string",
+            "title": "Claim Id"
+          },
+          "case_id": {
+            "type": "string",
+            "title": "Case Id"
+          },
+          "statement": {
+            "type": "string",
+            "title": "Statement"
+          },
+          "claim_type": {
+            "type": "string",
+            "title": "Claim Type"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "ACTIVE",
+              "SUPERSEDED",
+              "RETRACTED"
+            ],
+            "title": "Status",
+            "default": "ACTIVE"
+          },
+          "scope": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scope"
+          },
+          "valid_from": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Valid From"
+          },
+          "valid_until": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Valid Until"
+          },
+          "supporting_evidence_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Supporting Evidence Ids"
+          },
+          "contradicting_evidence_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Contradicting Evidence Ids"
+          },
+          "confidence": {
+            "type": "number",
+            "title": "Confidence"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "claim_id",
+          "case_id",
+          "statement",
+          "claim_type",
+          "scope",
+          "valid_from",
+          "valid_until",
+          "supporting_evidence_ids",
+          "contradicting_evidence_ids",
+          "confidence",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "ClaimResponse"
+      },
+      "ConsistencyReport": {
+        "properties": {
+          "violations": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Violations"
+          }
+        },
+        "type": "object",
+        "title": "ConsistencyReport",
+        "description": "Result of case_engine.consistency.validate_case \u2014 a list of violations."
+      },
+      "ContradictionResponse": {
+        "properties": {
+          "contradiction_id": {
+            "type": "string",
+            "title": "Contradiction Id"
+          },
+          "case_id": {
+            "type": "string",
+            "title": "Case Id"
+          },
+          "claim_a": {
+            "type": "string",
+            "title": "Claim A"
+          },
+          "claim_b": {
+            "type": "string",
+            "title": "Claim B"
+          },
+          "scope_a": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scope A"
+          },
+          "scope_b": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scope B"
+          },
+          "time_a": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Time A"
+          },
+          "time_b": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Time B"
+          },
+          "relation_type": {
+            "type": "string",
+            "title": "Relation Type"
+          },
+          "severity": {
+            "type": "number",
+            "title": "Severity"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "resolution_summary": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resolution Summary"
+          },
+          "resolution_evidence_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resolution Evidence Id"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "resolved_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resolved At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "contradiction_id",
+          "case_id",
+          "claim_a",
+          "claim_b",
+          "scope_a",
+          "scope_b",
+          "time_a",
+          "time_b",
+          "relation_type",
+          "severity",
+          "status",
+          "resolution_summary",
+          "resolution_evidence_id",
+          "created_at",
+          "resolved_at"
+        ],
+        "title": "ContradictionResponse"
+      },
+      "CounterfactualRequest": {
+        "properties": {
+          "excluded_evidence_id": {
+            "type": "string",
+            "title": "Excluded Evidence Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "excluded_evidence_id"
+        ],
+        "title": "CounterfactualRequest"
+      },
+      "CounterfactualResult": {
+        "properties": {
+          "evidence_id": {
+            "type": "string",
+            "title": "Evidence Id"
+          },
+          "original_confidence": {
+            "type": "number",
+            "title": "Original Confidence"
+          },
+          "counterfactual_confidence": {
+            "type": "number",
+            "title": "Counterfactual Confidence"
+          },
+          "causal_influence": {
+            "type": "number",
+            "title": "Causal Influence"
+          },
+          "interpretation": {
+            "type": "string",
+            "enum": [
+              "decision_critical",
+              "moderate",
+              "negligible"
+            ],
+            "title": "Interpretation"
+          }
+        },
+        "type": "object",
+        "required": [
+          "evidence_id",
+          "original_confidence",
+          "counterfactual_confidence",
+          "causal_influence",
+          "interpretation"
+        ],
+        "title": "CounterfactualResult"
+      },
+      "DecisionAttribution": {
+        "properties": {
+          "decision_id": {
+            "type": "string",
+            "title": "Decision Id"
+          },
+          "case_id": {
+            "type": "string",
+            "title": "Case Id"
+          },
+          "decision_type": {
+            "type": "string",
+            "title": "Decision Type"
+          },
+          "rationale": {
+            "type": "string",
+            "title": "Rationale"
+          },
+          "confidence": {
+            "type": "number",
+            "title": "Confidence"
+          },
+          "top_factors": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Top Factors"
+          },
+          "alternatives": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Alternatives"
+          },
+          "recommended_action_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recommended Action Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "decision_id",
+          "case_id",
+          "decision_type",
+          "rationale",
+          "confidence",
+          "top_factors",
+          "alternatives",
+          "recommended_action_id"
+        ],
+        "title": "DecisionAttribution"
+      },
+      "DecisionSummary": {
+        "properties": {
+          "decision_id": {
+            "type": "string",
+            "title": "Decision Id"
+          },
+          "case_id": {
+            "type": "string",
+            "title": "Case Id"
+          },
+          "decision_type": {
+            "type": "string",
+            "title": "Decision Type"
+          },
+          "recommended_action_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recommended Action Id"
+          },
+          "rationale": {
+            "type": "string",
+            "title": "Rationale"
+          },
+          "confidence": {
+            "type": "number",
+            "title": "Confidence"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "decision_id",
+          "case_id",
+          "decision_type",
+          "recommended_action_id",
+          "rationale",
+          "confidence",
+          "created_at"
+        ],
+        "title": "DecisionSummary"
+      },
+      "DetectRequest": {
+        "properties": {
+          "claim_a_id": {
+            "type": "string",
+            "title": "Claim A Id"
+          },
+          "claim_b_id": {
+            "type": "string",
+            "title": "Claim B Id"
+          },
+          "confidence_threshold": {
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Confidence Threshold",
+            "default": 0.7
+          }
+        },
+        "type": "object",
+        "required": [
+          "claim_a_id",
+          "claim_b_id"
+        ],
+        "title": "DetectRequest"
+      },
+      "EndogenousSuggestion": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "content": {
+            "type": "string",
+            "title": "Content"
+          },
+          "item_type": {
+            "type": "string",
+            "title": "Item Type"
+          },
+          "source": {
+            "type": "string",
+            "title": "Source"
+          },
+          "urgency": {
+            "type": "number",
+            "title": "Urgency"
+          },
+          "origin": {
+            "type": "string",
+            "title": "Origin"
+          },
+          "activated_by": {
+            "type": "string",
+            "title": "Activated By"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "content",
+          "item_type",
+          "source",
+          "urgency",
+          "origin",
+          "activated_by"
+        ],
+        "title": "EndogenousSuggestion",
+        "description": "One endogenous \"the system noticed\" candidate (Part 2 \u00a75.2).\n\nShape of collect_case_endogenous_candidates' dicts (the engine's extra\ninternal_activation key is intentionally dropped here \u2014 it is a\nsubstrate-facing field, not part of the wire contract)."
+      },
+      "EvidenceCreate": {
+        "properties": {
+          "content": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Content"
+          },
+          "source_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Id"
+          },
+          "evidence_type": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "OBSERVATION",
+                  "MEASUREMENT",
+                  "DOCUMENT_CLAIM",
+                  "HUMAN_ASSERTION",
+                  "TOOL_RESULT",
+                  "EXPERIMENT_RESULT",
+                  "MODEL_INFERENCE",
+                  "MODEL_SUMMARY"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Evidence Type"
+          },
+          "observed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Observed At"
+          },
+          "valid_from": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Valid From"
+          },
+          "valid_until": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Valid Until"
+          },
+          "quality_score": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 1.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Quality Score"
+          },
+          "metadata": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Metadata"
+          }
+        },
+        "type": "object",
+        "required": [
+          "content"
+        ],
+        "title": "EvidenceCreate"
+      },
+      "EvidenceFromURL": {
+        "properties": {
+          "url": {
+            "type": "string",
+            "pattern": "^https?://",
+            "title": "Url"
+          }
+        },
+        "type": "object",
+        "required": [
+          "url"
+        ],
+        "title": "EvidenceFromURL"
+      },
+      "EvidenceResponse": {
+        "properties": {
+          "evidence_id": {
+            "type": "string",
+            "title": "Evidence Id"
+          },
+          "case_id": {
+            "type": "string",
+            "title": "Case Id"
+          },
+          "source_id": {
+            "type": "string",
+            "title": "Source Id"
+          },
+          "evidence_type": {
+            "type": "string",
+            "title": "Evidence Type"
+          },
+          "content": {
+            "type": "string",
+            "title": "Content"
+          },
+          "observed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Observed At"
+          },
+          "recorded_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Recorded At"
+          },
+          "valid_from": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Valid From"
+          },
+          "valid_until": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Valid Until"
+          },
+          "supersedes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Supersedes"
+          },
+          "superseded_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Superseded By"
+          },
+          "source_lineage_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Lineage Id"
+          },
+          "duplicate_cluster_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duplicate Cluster Id"
+          },
+          "quality_score": {
+            "type": "number",
+            "title": "Quality Score"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "extracted_claim_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Extracted Claim Ids"
+          },
+          "metadata": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Metadata"
+          },
+          "source_llm": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Llm"
+          }
+        },
+        "type": "object",
+        "required": [
+          "evidence_id",
+          "case_id",
+          "source_id",
+          "evidence_type",
+          "content",
+          "observed_at",
+          "recorded_at",
+          "valid_from",
+          "valid_until",
+          "supersedes",
+          "superseded_by",
+          "source_lineage_id",
+          "duplicate_cluster_id",
+          "quality_score",
+          "status",
+          "extracted_claim_ids"
+        ],
+        "title": "EvidenceResponse"
+      },
+      "EvidenceStatusUpdate": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "ACTIVE",
+              "STALE",
+              "SUPERSEDED",
+              "DISPUTED",
+              "RESOLVED",
+              "ARCHIVED"
+            ],
+            "title": "Status"
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Reason"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "reason"
+        ],
+        "title": "EvidenceStatusUpdate"
+      },
+      "ExternalAnalysisCreate": {
+        "properties": {
+          "llm_name": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Llm Name"
+          },
+          "prompt_used": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Prompt Used"
+          },
+          "analysis_text": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Analysis Text"
+          },
+          "conversation_context": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Conversation Context"
+          },
+          "source_uri": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Uri"
+          }
+        },
+        "type": "object",
+        "required": [
+          "llm_name",
+          "prompt_used",
+          "analysis_text"
+        ],
+        "title": "ExternalAnalysisCreate",
+        "description": "Body for POST /cases/{case_id}/evidence/from-llm (Part 2 \u00a72.4).\n\nRecords an analysis the user obtained from an external LLM (Claude,\nGPT, ...) as MODEL_INFERENCE evidence with source_llm set, so\n_evidence_weight credits it 0.4 while ICE's own inferences stay 0.0."
+      },
+      "GapCreate": {
+        "properties": {
+          "needed_evidence": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Needed Evidence"
+          },
+          "why_needed": {
+            "type": "string",
+            "title": "Why Needed",
+            "default": ""
+          },
+          "discriminating_hypothesis_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Discriminating Hypothesis Ids"
+          },
+          "priority": {
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Priority",
+            "default": 0.5
+          }
+        },
+        "type": "object",
+        "required": [
+          "needed_evidence"
+        ],
+        "title": "GapCreate"
+      },
+      "GapResolve": {
+        "properties": {
+          "resolved_by_evidence_id": {
+            "type": "string",
+            "title": "Resolved By Evidence Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "resolved_by_evidence_id"
+        ],
+        "title": "GapResolve"
+      },
+      "GapResponse": {
+        "properties": {
+          "gap_id": {
+            "type": "string",
+            "title": "Gap Id"
+          },
+          "case_id": {
+            "type": "string",
+            "title": "Case Id"
+          },
+          "needed_evidence": {
+            "type": "string",
+            "title": "Needed Evidence"
+          },
+          "current_state": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current State"
+          },
+          "why_needed": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Why Needed"
+          },
+          "priority": {
+            "type": "number",
+            "title": "Priority"
+          },
+          "discriminating_hypothesis_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Discriminating Hypothesis Ids"
+          },
+          "depends_on_gap_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Depends On Gap Ids"
+          },
+          "blocks_action_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Blocks Action Ids"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "resolved_by_evidence_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Resolved By Evidence Ids"
+          },
+          "resolved_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resolved At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "gap_id",
+          "case_id",
+          "needed_evidence",
+          "current_state",
+          "why_needed",
+          "priority",
+          "discriminating_hypothesis_ids",
+          "depends_on_gap_ids",
+          "blocks_action_ids",
+          "created_at",
+          "resolved_by_evidence_ids",
+          "resolved_at"
+        ],
+        "title": "GapResponse"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "HealthResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "db": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Db"
+          },
+          "llm": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Llm"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status"
+        ],
+        "title": "HealthResponse"
+      },
+      "HypothesisChange": {
+        "properties": {
+          "hypothesis_id": {
+            "type": "string",
+            "title": "Hypothesis Id"
+          },
+          "statement": {
+            "type": "string",
+            "title": "Statement"
+          },
+          "prior_confidence": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prior Confidence"
+          },
+          "current_confidence": {
+            "type": "number",
+            "title": "Current Confidence"
+          },
+          "version_number": {
+            "type": "integer",
+            "title": "Version Number"
+          },
+          "cause_event_id": {
+            "type": "string",
+            "title": "Cause Event Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "hypothesis_id",
+          "statement",
+          "prior_confidence",
+          "current_confidence",
+          "version_number",
+          "cause_event_id"
+        ],
+        "title": "HypothesisChange"
+      },
+      "HypothesisCreate": {
+        "properties": {
+          "statement": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Statement"
+          },
+          "initial_confidence": {
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Initial Confidence",
+            "default": 0.5
+          },
+          "supporting_claim_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Supporting Claim Ids"
+          }
+        },
+        "type": "object",
+        "required": [
+          "statement"
+        ],
+        "title": "HypothesisCreate"
+      },
+      "HypothesisGraph": {
+        "properties": {
+          "hypothesis_id": {
+            "type": "string",
+            "title": "Hypothesis Id"
+          },
+          "statement": {
+            "type": "string",
+            "title": "Statement"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "current_confidence": {
+            "type": "number",
+            "title": "Current Confidence"
+          },
+          "supporting_claims": {
+            "items": {
+              "$ref": "#/components/schemas/HypothesisGraphClaim"
+            },
+            "type": "array",
+            "title": "Supporting Claims"
+          },
+          "contradicting_claims": {
+            "items": {
+              "$ref": "#/components/schemas/HypothesisGraphClaim"
+            },
+            "type": "array",
+            "title": "Contradicting Claims"
+          },
+          "version_history": {
+            "items": {
+              "$ref": "#/components/schemas/HypothesisGraphVersion"
+            },
+            "type": "array",
+            "title": "Version History"
+          }
+        },
+        "type": "object",
+        "required": [
+          "hypothesis_id",
+          "statement",
+          "status",
+          "current_confidence",
+          "supporting_claims",
+          "contradicting_claims",
+          "version_history"
+        ],
+        "title": "HypothesisGraph"
+      },
+      "HypothesisGraphClaim": {
+        "properties": {
+          "claim_id": {
+            "type": "string",
+            "title": "Claim Id"
+          },
+          "statement": {
+            "type": "string",
+            "title": "Statement"
+          },
+          "claim_type": {
+            "type": "string",
+            "title": "Claim Type"
+          },
+          "confidence": {
+            "type": "number",
+            "title": "Confidence"
+          },
+          "evidence": {
+            "items": {
+              "$ref": "#/components/schemas/HypothesisGraphEvidence"
+            },
+            "type": "array",
+            "title": "Evidence"
+          }
+        },
+        "type": "object",
+        "required": [
+          "claim_id",
+          "statement",
+          "claim_type",
+          "confidence",
+          "evidence"
+        ],
+        "title": "HypothesisGraphClaim"
+      },
+      "HypothesisGraphEvidence": {
+        "properties": {
+          "evidence_id": {
+            "type": "string",
+            "title": "Evidence Id"
+          },
+          "content_preview": {
+            "type": "string",
+            "title": "Content Preview"
+          },
+          "evidence_type": {
+            "type": "string",
+            "title": "Evidence Type"
+          },
+          "source_id": {
+            "type": "string",
+            "title": "Source Id"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          }
+        },
+        "type": "object",
+        "required": [
+          "evidence_id",
+          "content_preview",
+          "evidence_type",
+          "source_id",
+          "status"
+        ],
+        "title": "HypothesisGraphEvidence"
+      },
+      "HypothesisGraphVersion": {
+        "properties": {
+          "version_number": {
+            "type": "integer",
+            "title": "Version Number"
+          },
+          "confidence": {
+            "type": "number",
+            "title": "Confidence"
+          },
+          "prior_confidence": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prior Confidence"
+          },
+          "reason": {
+            "type": "string",
+            "title": "Reason"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "version_number",
+          "confidence",
+          "prior_confidence",
+          "reason",
+          "created_at"
+        ],
+        "title": "HypothesisGraphVersion"
+      },
+      "HypothesisResponse": {
+        "properties": {
+          "hypothesis_id": {
+            "type": "string",
+            "title": "Hypothesis Id"
+          },
+          "case_id": {
+            "type": "string",
+            "title": "Case Id"
+          },
+          "statement": {
+            "type": "string",
+            "title": "Statement"
+          },
+          "normalized_statement": {
+            "type": "string",
+            "title": "Normalized Statement"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "current_version_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current Version Id"
+          },
+          "origin": {
+            "type": "string",
+            "title": "Origin",
+            "default": "user"
+          },
+          "origin_detail": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Origin Detail"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "hypothesis_id",
+          "case_id",
+          "statement",
+          "normalized_statement",
+          "status",
+          "current_version_id",
+          "created_at"
+        ],
+        "title": "HypothesisResponse"
+      },
+      "HypothesisStatusUpdate": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "PROPOSED",
+              "SUPPORTED",
+              "CHALLENGED",
+              "SURVIVED",
+              "FALSIFIED",
+              "CONFIRMED",
+              "REMAINS_OPEN"
+            ],
+            "title": "Status"
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Reason"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "reason"
+        ],
+        "title": "HypothesisStatusUpdate"
+      },
+      "HypothesisVersionResponse": {
+        "properties": {
+          "version_id": {
+            "type": "string",
+            "title": "Version Id"
+          },
+          "hypothesis_id": {
+            "type": "string",
+            "title": "Hypothesis Id"
+          },
+          "version_number": {
+            "type": "integer",
+            "title": "Version Number"
+          },
+          "confidence": {
+            "type": "number",
+            "title": "Confidence"
+          },
+          "prior_confidence": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prior Confidence"
+          },
+          "supporting_claim_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Supporting Claim Ids"
+          },
+          "contradicting_claim_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Contradicting Claim Ids"
+          },
+          "supporting_evidence_added": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Supporting Evidence Added"
+          },
+          "supporting_evidence_removed": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Supporting Evidence Removed"
+          },
+          "contradicting_evidence_added": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Contradicting Evidence Added"
+          },
+          "reason": {
+            "type": "string",
+            "title": "Reason"
+          },
+          "cause_event_id": {
+            "type": "string",
+            "title": "Cause Event Id"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "version_id",
+          "hypothesis_id",
+          "version_number",
+          "confidence",
+          "prior_confidence",
+          "supporting_claim_ids",
+          "contradicting_claim_ids",
+          "supporting_evidence_added",
+          "supporting_evidence_removed",
+          "contradicting_evidence_added",
+          "reason",
+          "cause_event_id",
+          "created_at"
+        ],
+        "title": "HypothesisVersionResponse"
+      },
+      "InvestigateRequest": {
+        "properties": {
+          "force_recompute": {
+            "type": "boolean",
+            "title": "Force Recompute",
+            "default": false
+          },
+          "enable_falsification": {
+            "type": "boolean",
+            "title": "Enable Falsification",
+            "default": false
+          },
+          "enable_next_best_action": {
+            "type": "boolean",
+            "title": "Enable Next Best Action",
+            "default": true
+          },
+          "enable_auto_execute": {
+            "type": "boolean",
+            "title": "Enable Auto Execute",
+            "default": false
+          }
+        },
+        "type": "object",
+        "title": "InvestigateRequest"
+      },
+      "InvestigationResult": {
+        "properties": {
+          "case_id": {
+            "type": "string",
+            "title": "Case Id"
+          },
+          "leading_hypothesis": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LeadingHypothesisSummary"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "hypothesis_changes": {
+            "items": {
+              "$ref": "#/components/schemas/HypothesisChange"
+            },
+            "type": "array",
+            "title": "Hypothesis Changes"
+          },
+          "new_contradictions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "New Contradictions"
+          },
+          "resolved_contradictions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Resolved Contradictions"
+          },
+          "new_gaps": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "New Gaps"
+          },
+          "new_actions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "New Actions"
+          },
+          "recommended_action": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/NextActionSummary"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "decision": {
+            "$ref": "#/components/schemas/DecisionSummary"
+          },
+          "events_emitted": {
+            "type": "integer",
+            "title": "Events Emitted"
+          },
+          "latency_seconds": {
+            "type": "number",
+            "title": "Latency Seconds"
+          },
+          "lifecycle_changes": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Lifecycle Changes"
+          },
+          "auto_executed_action": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Auto Executed Action"
+          }
+        },
+        "type": "object",
+        "required": [
+          "case_id",
+          "leading_hypothesis",
+          "hypothesis_changes",
+          "new_contradictions",
+          "resolved_contradictions",
+          "new_gaps",
+          "new_actions",
+          "recommended_action",
+          "decision",
+          "events_emitted",
+          "latency_seconds"
+        ],
+        "title": "InvestigationResult"
+      },
+      "LeadingHypothesisSummary": {
+        "properties": {
+          "hypothesis_id": {
+            "type": "string",
+            "title": "Hypothesis Id"
+          },
+          "statement": {
+            "type": "string",
+            "title": "Statement"
+          },
+          "confidence": {
+            "type": "number",
+            "title": "Confidence"
+          },
+          "version_number": {
+            "type": "integer",
+            "title": "Version Number"
+          }
+        },
+        "type": "object",
+        "required": [
+          "hypothesis_id",
+          "statement",
+          "confidence",
+          "version_number"
+        ],
+        "title": "LeadingHypothesisSummary"
+      },
+      "LinkEvidenceRequest": {
+        "properties": {
+          "evidence_id": {
+            "type": "string",
+            "title": "Evidence Id"
+          },
+          "relation": {
+            "type": "string",
+            "enum": [
+              "support",
+              "contradict"
+            ],
+            "title": "Relation"
+          }
+        },
+        "type": "object",
+        "required": [
+          "evidence_id",
+          "relation"
+        ],
+        "title": "LinkEvidenceRequest"
+      },
+      "NextActionSummary": {
+        "properties": {
+          "action_id": {
+            "type": "string",
+            "title": "Action Id"
+          },
+          "action_type": {
+            "type": "string",
+            "title": "Action Type"
+          },
+          "target": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target"
+          },
+          "priority": {
+            "type": "number",
+            "title": "Priority"
+          }
+        },
+        "type": "object",
+        "required": [
+          "action_id",
+          "action_type",
+          "target",
+          "priority"
+        ],
+        "title": "NextActionSummary"
+      },
+      "ProvenanceChain": {
+        "properties": {
+          "evidence_id": {
+            "type": "string",
+            "title": "Evidence Id"
+          },
+          "chain": {
+            "items": {
+              "$ref": "#/components/schemas/ProvenanceChainEntry"
+            },
+            "type": "array",
+            "title": "Chain"
+          }
+        },
+        "type": "object",
+        "required": [
+          "evidence_id",
+          "chain"
+        ],
+        "title": "ProvenanceChain"
+      },
+      "ProvenanceChainEntry": {
+        "properties": {
+          "node_id": {
+            "type": "string",
+            "title": "Node Id"
+          },
+          "node_type": {
+            "type": "string",
+            "title": "Node Type"
+          },
+          "relation": {
+            "type": "string",
+            "title": "Relation"
+          },
+          "metadata": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Metadata"
+          }
+        },
+        "type": "object",
+        "required": [
+          "node_id",
+          "node_type",
+          "relation",
+          "metadata"
+        ],
+        "title": "ProvenanceChainEntry"
+      },
+      "RejectRequest": {
+        "properties": {
+          "reason": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Reason"
+          }
+        },
+        "type": "object",
+        "required": [
+          "reason"
+        ],
+        "title": "RejectRequest"
+      },
+      "ResolveRequest": {
+        "properties": {
+          "resolution_evidence_id": {
+            "type": "string",
+            "title": "Resolution Evidence Id"
+          },
+          "summary": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Summary"
+          }
+        },
+        "type": "object",
+        "required": [
+          "resolution_evidence_id",
+          "summary"
+        ],
+        "title": "ResolveRequest"
+      },
+      "SupersedeRequest": {
+        "properties": {
+          "new_evidence_id": {
+            "type": "string",
+            "minLength": 1,
+            "title": "New Evidence Id"
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Reason"
+          }
+        },
+        "type": "object",
+        "required": [
+          "new_evidence_id",
+          "reason"
+        ],
+        "title": "SupersedeRequest"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    }
+  }
+}

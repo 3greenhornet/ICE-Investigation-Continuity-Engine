@@ -1,0 +1,5 @@
+# Static verification (py_compile) — sandbox run 2026-10-24T05:56:15+00:00
+
+Command: python3 -m py_compile over every .py under hari/ (excluding __pycache__/, .pytest_cache/, verification/)
+
+Compiled: 163 files, 0 failed.

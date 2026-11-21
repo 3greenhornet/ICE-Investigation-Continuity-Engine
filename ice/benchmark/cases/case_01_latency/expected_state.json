@@ -1,0 +1,5 @@
+{
+  "expected_hypothesis_count_min": 2,
+  "expected_contradiction_count_min": 1,
+  "expected_evidence_count_min": 5
+}

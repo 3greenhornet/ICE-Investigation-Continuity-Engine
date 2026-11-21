@@ -1,0 +1,1 @@
+The heap dump shows thousands of retained request objects held by the response cache. GC is healthy — pause times are flat and the allocation rate is normal. This is a retention bug in the caching layer, not a GC tuning issue. The canary pods with the cache disabled are flat at 2GB all day.

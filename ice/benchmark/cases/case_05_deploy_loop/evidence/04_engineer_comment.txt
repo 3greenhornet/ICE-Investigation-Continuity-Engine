@@ -1,0 +1,1 @@
+The health check failure is a false negative — the service is healthy on the new port. The autoscaler keeps remediating a problem that doesn't exist. I curled /api/health on 9090 from inside the network and got 200 OK within 5ms during the "unhealthy" window. The LB is still probing 8080.

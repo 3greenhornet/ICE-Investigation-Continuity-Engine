@@ -1,0 +1,13 @@
+{
+  "case_id": "case_03_auth_failure",
+  "title": "Intermittent auth failures after certificate rotation",
+  "objective": "Identify the root cause of the intermittent token validation failures that began after the 09:00 certificate rotation",
+  "required_confidence": 0.85,
+  "decision_deadline": "2026-10-02T17:00:00Z",
+  "evidence_files": [
+    {"file": "evidence/01_incident.md", "order": 1},
+    {"file": "evidence/02_cert_notes.md", "order": 2},
+    {"file": "evidence/03_engineer_comment.txt", "order": 3},
+    {"file": "evidence/04_metrics.csv", "order": 4}
+  ]
+}

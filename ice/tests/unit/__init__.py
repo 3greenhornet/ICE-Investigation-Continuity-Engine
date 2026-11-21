@@ -1,0 +1,1 @@
+"""Fast unit tests: no DB, no LLM (marker: unit)."""

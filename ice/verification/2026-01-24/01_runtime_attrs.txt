@@ -1,0 +1,72 @@
+# Runtime attribute checks — sandbox run 2026-10-24T05:57:54+00:00
+
+Doc Part 4 §2.3 runs these checks inside the api container. This sandbox
+has no container, so the identical checks run via a stubbed-import
+harness: python3 /home/z/my-project/.scratch/fix4_runtime_attrs.py
+(stub pattern from .scratch/final_import_sweep.py; the stubs only stand
+in for third-party drivers at import time — every assertion below
+inspects the engine's own classes/functions/signatures/source).
+
+Beyond the doc's five checks (EventLogger methods, next_best_action
+surface, action.py surface, claim prefilter, P2 recompute), the harness
+also asserts the Part 2 dispatch/surface extensions: case_type
+dispatchers, enable_auto_execute signature, cycle/shim identity,
+DEFAULT_QUALITY_SCORES + ingest_external_analysis, endogenous/nli entry
+points, the 015 schema columns, the NLI never-raises contract without
+transformers, and the executor mapping with fake Action objects.
+
+## Harness output (stdout + stderr, verbatim)
+
+```
+Skipping monologue fallback target 'groq/openai/gpt-oss-120b': API key missing or empty.
+Skipping monologue fallback target 'groq/openai/gpt-oss-20b': API key missing or empty.
+Skipping monologue fallback target 'groq/qwen/qwen3.6-27b': API key missing or empty.
+Skipping monologue fallback target 'openrouter/meta-llama/llama-3.3-70b-instruct': API key missing or empty.
+Skipping monologue fallback target 'gemini/gemini-2.5-flash': API key missing or empty.
+Skipping monologue fallback target 'mistral/mistral-small-latest': API key missing or empty.
+[PASS] EventLogger has all 5 required methods (R1)
+[PASS] next_best_action has compute_priority (R4)
+[PASS] next_best_action has compute_priority_with_factors (R4)
+[PASS] next_best_action has select_next_best_action (R4)
+[PASS] compute_priority_with_factors source contains debt_bonus (Part 2 §8)
+Provider key GROQ_API_KEY missing; skipping model groq/openai/gpt-oss-120b
+Provider key GROQ_API_KEY missing; skipping model groq/openai/gpt-oss-20b
+Provider key OPENROUTER_API_KEY missing; skipping model openrouter/meta-llama/llama-3.3-70b-instruct
+Provider key GEMINI_API_KEY missing; skipping model gemini/gemini-2.5-flash
+Provider key MISTRAL_API_KEY missing; skipping model mistral/mistral-small-latest
+[PASS] action.py has edit_action (R4/R5)
+[PASS] action.py has ActionExecutor (R4/R5)
+[PASS] action.py has NullExecutor (R4/R5)
+[PASS] action.py has WebSearchExecutor (R4/R5)
+[PASS] action.py has FileInspectExecutor (R4/R5)
+[PASS] action.py has HumanAskExecutor (R4/R5)
+[PASS] action.py has default_executor_for (R4/R5)
+[PASS] find_contradicting_claims has prefilter (_CANDIDATE_MIN_OVERLAP, R3)
+[PASS] recompute_hypothesis_confidence has direct evidence query (direct_ev_rows, P2)
+[PASS] recompute_hypothesis_confidence has relation branch (P2/Correction 6)
+[PASS] decide dispatches to _decide_research
+[PASS] decide dispatches to _decide_explore (stub per doc §3.2/§12 #6)
+[PASS] generate_actions dispatches to _generate_actions_research
+[PASS] run_investigation_cycle signature has enable_auto_execute
+[PASS] investigation.py shim re-exports the SAME run_investigation_cycle
+[PASS] evidence.py defines DEFAULT_QUALITY_SCORES (P1)
+[PASS] evidence.py defines ingest_external_analysis (Part 2 §2)
+[PASS] DEFAULT_QUALITY_SCORES has MEASUREMENT=0.95 / OBSERVATION=0.65
+[PASS] endogenous.collect_case_endogenous_candidates exists
+[PASS] nli.classify_claim_against_hypothesis exists
+[PASS] Case schema has case_type
+[PASS] Hypothesis schema has origin
+[PASS] Evidence schema has source_llm
+[PASS] precondition: transformers absent in this sandbox (NLI optional dep)
+NLI model load failed (roberta-large-mnli): No module named 'transformers' — falling back to manual classification. Install with: pip install -e '.[nli]'
+[PASS] classify_claim_against_hypothesis returns None without transformers (never raises)
+[PASS] default_executor_for(SEARCH) -> WebSearchExecutor
+[PASS] default_executor_for(INSPECT) -> FileInspectExecutor
+[PASS] default_executor_for(ASK_HUMAN) -> HumanAskExecutor
+[PASS] default_executor_for(RETRIEVE) -> NullExecutor
+[PASS] default_executor_for(COMPARE) -> NullExecutor (documented no-op)
+
+ALL RUNTIME ATTRIBUTE CHECKS PASSED
+```
+
+Exit code: 0

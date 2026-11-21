@@ -1,0 +1,13 @@
+{
+  "root_cause": "Connection pool exhaustion due to misconfigured max_connections (100→20) in deployment v42",
+  "primary_hypothesis": "Connection pool regression",
+  "secondary_hypotheses": ["Cache invalidation bug", "Regional infrastructure"],
+  "contradictions": [
+    {
+      "claim_a": "Cache hit rate dropped",
+      "claim_b": "Cache hit rate unchanged",
+      "resolution": "The drop was temporary during the deployment window"
+    }
+  ],
+  "decision": "Rollback deployment v42 and restore max_connections to 100"
+}

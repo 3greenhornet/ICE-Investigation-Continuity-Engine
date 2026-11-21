@@ -1,0 +1,59 @@
+# Import smoke test — sandbox run 2026-10-24T05:56:32+00:00
+
+Doc Part 4 §2.2 runs a 41-module import list inside the api container
+('docker compose exec api python -c ...'). No container exists in this
+sandbox, so this stage runs the tree-wide STUBBED import sweep instead:
+python3 /home/z/my-project/.scratch/final_import_sweep.py
+
+The sweep covers MORE than the doc's 41 modules: it imports every .py
+module in the tree (163 .py files -> 148 counted; the 15 __init__.py
+files are imported as their packages) across 15 packages, plus explicit
+shim/rename assertions (case_engine.investigation re-exports the same
+run_investigation_cycle object as case_engine.cycle) and Part 2 entry
+point assertions (case_engine.endogenous.collect_case_endogenous_candidates,
+case_engine.nli.classify_claim_against_hypothesis).
+
+Stubbing note: the sweep installs sys.modules stubs for the packages
+absent here (litellm, google.genai, streamlit, testcontainers, dotenv)
+AND deterministically overrides asyncpg + pgvector with its own stubs
+even though asyncpg 0.32.0 / pgvector 0.5.1 ARE installed in this sandbox
+(the stubs prevent any accidental pool/network activity at import time).
+The sweep therefore proves the IMPORT GRAPH is sound, not the real
+driver's import side effects — the real-deps smoke
+('docker compose exec api python -c "import app.main, case_engine, benchmark.runner"')
+is the D.4 contract item and runs user-side (see 03/04 blocked notes).
+
+## Sweep output (verbatim)
+
+```
+Skipping monologue fallback target 'groq/openai/gpt-oss-120b': API key missing or empty.
+Skipping monologue fallback target 'groq/openai/gpt-oss-20b': API key missing or empty.
+Skipping monologue fallback target 'groq/qwen/qwen3.6-27b': API key missing or empty.
+Skipping monologue fallback target 'openrouter/meta-llama/llama-3.3-70b-instruct': API key missing or empty.
+Skipping monologue fallback target 'gemini/gemini-2.5-flash': API key missing or empty.
+Skipping monologue fallback target 'mistral/mistral-small-latest': API key missing or empty.
+Provider key GROQ_API_KEY missing; skipping model groq/openai/gpt-oss-120b
+Provider key GROQ_API_KEY missing; skipping model groq/openai/gpt-oss-20b
+Provider key OPENROUTER_API_KEY missing; skipping model openrouter/meta-llama/llama-3.3-70b-instruct
+Provider key GEMINI_API_KEY missing; skipping model gemini/gemini-2.5-flash
+Provider key MISTRAL_API_KEY missing; skipping model mistral/mistral-small-latest
+Modules imported: 148 across 15 packages
+Failures: 0
+```
+
+Sweep exit code: 0 (0 = 0 failures)
+
+## Doc §2.2 module list — coverage cross-check
+
+All 41 modules in the doc's list are inside the sweep's package set
+(case_engine.* incl. cycle + investigation shim + endogenous, app.*, cli.cli,
+benchmark.runner/metrics/baselines/ablation, engine.events/generate/config/
+memory/tick, psyche.state, models.workspace, db.connection) — each is
+imported individually by the sweep's rglob walk, so 'Failures: 0' implies
+the doc's expected 'All 41 modules imported successfully' conclusion,
+superset-verified.
+
+Note: db.connection, engine.memory and case_engine.llm import via the
+asyncpg/litellm/google.genai stubs here — in the api container the REAL
+packages are present (Dockerfile installs requirements.txt), which is
+exactly what the user-side real-deps smoke verifies.

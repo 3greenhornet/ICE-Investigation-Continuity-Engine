@@ -1,0 +1,14 @@
+app
+benchmark
+case_engine
+cli
+db
+engine
+ice_adapter
+models
+providers
+psyche
+scripts
+serendipity
+serendipity-engine
+ui
