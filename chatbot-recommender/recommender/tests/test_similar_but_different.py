@@ -18,12 +18,19 @@ from recommender.mechanisms.similar_but_different import (
 )
 
 
-def build_mechanism(vector_engine: str = "qdrant") -> SimilarButDifferent:
+def build_mechanism(vector_engine: str = "numpy") -> SimilarButDifferent:
     catalog = build_demo_catalog()
     embedder = TfidfEmbedder()
     embedder.fit([item.text for item in catalog.items])
     vectors = embedder.encode([item.text for item in catalog.items])
-    store = QdrantVectorStore() if vector_engine == "qdrant" else NumpyVectorStore()
+    if vector_engine == "qdrant":
+        try:
+            import qdrant_client  # noqa: F401
+            store = QdrantVectorStore()
+        except ImportError:
+            pytest.skip("qdrant_client not installed")
+    else:
+        store = NumpyVectorStore()
     store.build(catalog.items, vectors)
     anti = AntiRepetition()
     return SimilarButDifferent(

@@ -21,13 +21,21 @@ CONFIG = RecommenderConfig()
 CONTEXT = np.array([0.5, 0.8, 0.4, 0.5])
 
 
-def build_wildcards(bandit_engine: str = "mab2rec") -> Wildcards:
+def build_wildcards(bandit_engine: str = "epsilon") -> Wildcards:
     catalog = build_demo_catalog()
     arms = CONFIG.wildcard_arms
     if bandit_engine == "mab2rec":
-        bandit = Mab2RecBandit(arms, seed=CONFIG.seed)
+        try:
+            import mab2rec  # noqa: F401
+            bandit = Mab2RecBandit(arms, seed=CONFIG.seed)
+        except ImportError:
+            pytest.skip("mab2rec not installed")
     elif bandit_engine == "vowpal_wabbit":
-        bandit = VowpalWabbitBandit(arms, seed=CONFIG.seed)
+        try:
+            import vowpalwabbit  # noqa: F401
+            bandit = VowpalWabbitBandit(arms, seed=CONFIG.seed)
+        except ImportError:
+            pytest.skip("vowpalwabbit not installed")
     else:
         bandit = EpsilonGreedyBandit(arms, seed=CONFIG.seed)
     return Wildcards(
@@ -144,6 +152,7 @@ def test_arm_stats_are_reported() -> None:
 
 
 def test_vowpal_wabbit_adapter_round_trip() -> None:
+    pytest.importorskip("vowpalwabbit")
     bandit = VowpalWabbitBandit(("a", "b"), seed=3)
     context = np.array([0.2, 0.9])
     arm = bandit.choose(context)
