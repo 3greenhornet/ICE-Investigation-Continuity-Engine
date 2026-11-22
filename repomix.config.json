@@ -21,6 +21,8 @@
       "*icenov16*",
       "ICE-comparision.md",
       "ICE-comparison.md",
+      "learnharness*",
+      "learnharness.md",
       "*.repomix.md",
       "*.repomix.xml",
       "*.repomix.json",

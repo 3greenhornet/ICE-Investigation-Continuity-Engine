@@ -1,8 +1,11 @@
 """ice/tests/unit/test_repointel_client.py — Unit tests for RepoIntel client & MCP server."""
 
 import pytest
+try:
+    from app.mcp.server import dispatch_request
+except ImportError:
+    from mcp_server import dispatch_request
 from case_engine.repointel_client import RepoIntelClient, CodeMaturityAssessment
-from mcp_server import dispatch_request
 
 
 def test_repointel_client_initialization():

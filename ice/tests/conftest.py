@@ -32,6 +32,11 @@ lists only the 20 test files + __init__ files):
 
 import sys
 import types
+from pathlib import Path
+
+_ICE_ROOT = str(Path(__file__).resolve().parent.parent)
+if _ICE_ROOT not in sys.path:
+    sys.path.insert(0, _ICE_ROOT)
 
 
 def _install_optional_dependency_stubs() -> None:

@@ -38,16 +38,18 @@ if str(_ICE_DIR) not in sys.path:
     sys.path.insert(0, str(_ICE_DIR))
 
 from case_engine.repointel_client import RepoIntelClient  # noqa: E402
+from case_engine.pedagogy import PedagogyEngine  # noqa: E402
 
 logger = logging.getLogger("ice.companion")
 
 
 class DevelopmentCompanion:
-    """Zero-cost autonomous coordinator orchestrating ICE and RepoIntel."""
+    """Zero-cost autonomous coordinator orchestrating ICE, RepoIntel, and Pedagogy."""
 
     def __init__(self, case_id: str = "case_default"):
         self.case_id = case_id
         self.repointel = RepoIntelClient()
+        self.pedagogy = PedagogyEngine(repointel_client=self.repointel)
 
     def get_status_overview(self) -> Dict[str, Any]:
         """Aggregate high-level status across ICE and RepoIntel."""
@@ -117,11 +119,35 @@ class DevelopmentCompanion:
             for d in dimensions
         ]
 
+    # Pedagogical Scaffolding & Anti-Blind-Copy-Paste Methods
+    def probe_understanding(self, statement: str, thinking_trace: str = "") -> Dict[str, Any]:
+        """Assess developer edge and mental models to prevent blind copy-pasting."""
+        bracket = self.pedagogy.probe_learner_edge(statement, thinking_trace)
+        return bracket.model_dump()
+
+    def build_learning_plan(self, goal_statement: str, learner_level: str = "intermediate") -> Dict[str, Any]:
+        """Generate a Minimal Dependency Tree DAG applying Principle i and Principle ii."""
+        plan = self.pedagogy.plan_minimal_tree(goal_statement, learner_level)
+        return plan.model_dump()
+
+    def explain_why_code_exists(self, symbol: str) -> Dict[str, Any]:
+        """3Blue1Brown-style Motivated Architectural Walkthrough for a symbol."""
+        return self.pedagogy.explain_why_this_code_exists(symbol)
+
+    def practice_problem(self, node_id: str, mode: str = "discrimination") -> Dict[str, Any]:
+        """Generate active retrieval practice challenge with hidden solution and 6-rung hint ladder."""
+        prob = self.pedagogy.generate_practice_problem(node_id, mode)
+        return prob.model_dump()
+
+    def get_hint(self, problem_id: str, rung: Optional[int] = None, thinking_trace: str = "") -> Dict[str, Any]:
+        """Get the next minimal hint from the 6-rung ladder."""
+        return self.pedagogy.get_hint(problem_id, rung, thinking_trace)
+
 
 def print_banner():
     print("=" * 72)
-    print("  ICE × REPOINTEL — CONTINUOUS DEVELOPMENT COMPANION (FREE TIER)")
-    print("  Zero-Cost Guidance for In-Progress, Learning & Unfinished Projects")
+    print("  ICE × REPOINTEL — CONTINUOUS DEVELOPMENT & LEARNING COMPANION")
+    print("  Zero-Cost Guidance, Pedagogical Scaffolding & Anti-Copy-Paste Mode")
     print("=" * 72)
 
 
@@ -137,12 +163,20 @@ def interactive_loop():
         print(f"[Status] Codebase Scope      : {status['codebase_architecture']['file_count']} files, "
               f"{status['codebase_architecture'].get('call_edges_count', 0)} call edges")
 
-    print("\nCommands:")
+    print("\nInvestigation & Code Commands:")
     print("  next <goal text>     - Check code maturity & get actionable next steps")
     print("  perspectives <topic> - Discover STORM-lite research perspectives & gaps")
     print("  search <query>       - Search RepoIntel AST symbols & callers")
     print("  hubs                 - View top architectural hub functions in the codebase")
+    print("\nPedagogical & Learning Commands (LearnHarness Scaffolding):")
+    print("  probe <your thoughts>- Bracket your understanding edge & check for blind copy-paste")
+    print("  learn <goal>         - Generate Minimal Dependency Tree DAG (Mermaid)")
+    print("  why <symbol>         - Motivated discovery: Why does this code exist?")
+    print("  practice <topic>     - Active retrieval challenge with 6-rung hint ladder")
+    print("  hint <prob_id>       - Get the next minimal hint rung (R0 to R5)")
     print("  exit                 - Quit companion\n")
+
+    last_problem_id = None
 
     while True:
         try:
@@ -203,8 +237,76 @@ def interactive_loop():
                 print(f"  * {h['name']} ({h['file']}) — {h['callers']} callers")
             print()
 
+        elif cmd == "probe":
+            if not arg:
+                print("Usage: probe <describe your understanding or what you are trying to do>")
+                continue
+            res = companion.probe_understanding(arg)
+            print(f"\n[Pedagogy Probe] Developer Level: {res['learner_level'].upper()}")
+            print(f"[Cognitive Mode ] {res['cognitive_mode'].upper()}")
+            print(f"[Floor / Held   ] {res['floor']}")
+            print(f"[Ceiling / Edge ] {res['ceiling']}")
+            print(f"[Diagnosis      ] {res['thinking_diagnosis']}")
+            print("\nRecommendations:")
+            for r in res['recommendations']:
+                print(f"  * {r}")
+            print()
+
+        elif cmd == "learn":
+            if not arg:
+                print("Usage: learn <goal or concept you want to master>")
+                continue
+            plan = companion.build_learning_plan(arg)
+            print(f"\n[Plan DAG] ID: {plan['plan_id']}")
+            print(f"Minimal Dependency Tree ({len(plan['nodes'])} landmarks):")
+            for n in plan['nodes']:
+                print(f"  [{n['kind'].upper()[:4]}] {n['id']} : {n['title']}")
+                print(f"         prereqs: {', '.join(n['prerequisites']) or 'NONE (foundation)'}")
+            print("\nMermaid Diagram:")
+            print(plan['mermaid_graph'])
+            print()
+
+        elif cmd == "why":
+            if not arg:
+                print("Usage: why <code symbol or function name>")
+                continue
+            why = companion.explain_why_code_exists(arg)
+            print(f"\n[Why This Code Exists] Symbol: {why['symbol']}")
+            print(f"[File Path           ] {why['file_path']}")
+            print(f"[Grounding           ] Callers: {why['codebase_grounding']['callers']}")
+            print(f"[Grounding           ] Blast: {why['codebase_grounding']['blast_radius_affected_symbols']} symbols")
+            print(f"\nPrinciple i (Invariant):")
+            print(f"  {why['principle_i_invariant']}")
+            print(f"\nPrinciple ii (Motivated Discovery):")
+            print(f"  {why['principle_ii_motivated_discovery']}")
+            print(f"\nAnti-Copy-Paste Advice:")
+            print(f"  {why['anti_copy_paste_advice']}")
+            print()
+
+        elif cmd == "practice":
+            topic = arg or "core-invariants"
+            prob = companion.practice_problem(topic)
+            last_problem_id = prob['problem_id']
+            print(f"\n[Practice Challenge] ID: {prob['problem_id']} (Mode: {prob['mode'].upper()})")
+            print(f"Problem:\n{prob['statement']}")
+            print(f"\nHint ladder ready (6 rungs: R0 to R5). Type 'hint {prob['problem_id']}' if stuck.")
+            print()
+
+        elif cmd == "hint":
+            target_id = arg or last_problem_id
+            if not target_id:
+                print("Usage: hint <problem_id>")
+                continue
+            h = companion.get_hint(target_id)
+            if "error" in h:
+                print(f"[Error] {h['error']}")
+            else:
+                print(f"\n[{h['rung_label']}] {h['hint']}")
+                print(f"Remaining rungs: {h['remaining_rungs']}")
+                print(f"Advice: {h['doctrine_reminder']}\n")
+
         else:
-            print(f"Unknown command '{cmd}'. Try 'next <goal>', 'search <symbol>', 'perspectives', or 'hubs'.")
+            print(f"Unknown command '{cmd}'. Try 'next', 'probe', 'learn', 'why', 'practice', 'hint', 'search', or 'hubs'.")
 
 
 def main():

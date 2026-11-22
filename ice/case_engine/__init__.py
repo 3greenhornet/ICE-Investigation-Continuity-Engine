@@ -118,6 +118,11 @@ EVENT_TYPES: frozenset[str] = frozenset({
     "goal_decomposition_proposed",
     # research plane (STORM-lite perspective-guided question discovery)
     "research_questions_generated",
+    # pedagogy plane (LearnHarness cognitive scaffolding, probe, teach, practice)
+    "pedagogy_session_started",
+    "pedagogy_step_advanced",
+    "pedagogy_check_evaluated",
+    "pedagogy_practice_concluded",
 })
 
 

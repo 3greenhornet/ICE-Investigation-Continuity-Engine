@@ -835,6 +835,100 @@ async def repointel_get_file_snippet(
 
 
 # ======================================================================
+# 14. PEDAGOGICAL & COGNITIVE SCAFFOLDING TOOLS (LearnHarness Scaffolding)
+# ======================================================================
+
+@_safe
+async def ice_tutor_probe(statement: str, thinking_trace: str = "") -> Dict[str, Any]:
+    """Bracket developer understanding edge (floor/ceiling) and diagnose cognitive mode.
+
+    Detects sound reasoning, misconceptions, unwarranted assumptions, slips, or
+    blind copy-paste patterns from stream-of-consciousness thinking traces.
+    """
+    from case_engine.pedagogy import PedagogyEngine
+    engine = PedagogyEngine()
+    result = engine.probe_learner_edge(statement, thinking_trace)
+    return result.model_dump()
+
+
+@_safe
+async def ice_tutor_plan_map(goal_statement: str, learner_level: str = "intermediate") -> Dict[str, Any]:
+    """Generate Minimal Dependency Tree DAG (Mermaid) from foundational truths to the goal.
+
+    Applies Principle i (Unconditional Truths First) and Principle ii (Motivated Discovery),
+    grounding nodes in RepoIntel AST symbols.
+    """
+    from case_engine.pedagogy import PedagogyEngine
+    engine = PedagogyEngine()
+    plan = engine.plan_minimal_tree(goal_statement, learner_level)
+    return plan.model_dump()
+
+
+@_safe
+async def ice_tutor_teach_step(plan_id: str, node_id: str) -> Dict[str, Any]:
+    """Get the next single reasoning step: Predict (before) -> Motivated Explanation -> Check (after).
+
+    Enforces single-step cognitive pacing so the developer never feels overwhelmed.
+    """
+    from case_engine.pedagogy import PedagogyEngine
+    engine = PedagogyEngine()
+    step = engine.get_teaching_step(plan_id, node_id)
+    return step.model_dump()
+
+
+@_safe
+async def ice_tutor_evaluate_check(
+    question: Dict[str, Any],
+    answer: str,
+    thinking_trace: str = "",
+) -> Dict[str, Any]:
+    """Evaluate a check answer and thinking trace, giving surgical feedback without giving away answers."""
+    from case_engine.pedagogy import PedagogyEngine
+    engine = PedagogyEngine()
+    return engine.evaluate_check(question, answer, thinking_trace)
+
+
+@_safe
+async def ice_tutor_practice_problem(node_id: str, mode: str = "discrimination") -> Dict[str, Any]:
+    """Pose an active retrieval practice problem (Recall, Discrimination, Composition) with pre-computed hint ladder."""
+    from case_engine.pedagogy import PedagogyEngine
+    engine = PedagogyEngine()
+    problem = engine.generate_practice_problem(node_id, mode)
+    return problem.model_dump()
+
+
+@_safe
+async def ice_tutor_hint(
+    problem_id: str,
+    requested_rung: Optional[int] = None,
+    thinking_trace: str = "",
+) -> Dict[str, Any]:
+    """Get the next progressive hint from the 6-rung ladder (R0 Attention -> R1 Pattern -> R2 Class -> R3 Named -> R4 Outlined -> R5 Solution)."""
+    from case_engine.pedagogy import PedagogyEngine
+    engine = PedagogyEngine()
+    return engine.get_hint(problem_id, requested_rung, thinking_trace)
+
+
+@_safe
+async def ice_tutor_explain_why(symbol_name: str, repo_path: str = "") -> Dict[str, Any]:
+    """3Blue1Brown-style Motivated Architectural Walkthrough: Why does this code exist? What breaks if deleted?"""
+    from case_engine.pedagogy import PedagogyEngine
+    engine = PedagogyEngine()
+    return engine.explain_why_this_code_exists(symbol_name, repo_path)
+
+
+@_safe
+async def ice_tutor_extract_knowledge(
+    case_id: str = "case_default",
+    goal_statements: Optional[List[str]] = None,
+) -> Dict[str, Any]:
+    """Extract durable propositions and reasoning chains into the persistent knowledge graph."""
+    from case_engine.pedagogy import PedagogyEngine
+    engine = PedagogyEngine()
+    return engine.extract_propositions_and_chains(case_id, goal_statements)
+
+
+# ======================================================================
 # MASTER TOOLS REGISTRY
 # ======================================================================
 
@@ -925,6 +1019,16 @@ TOOLS: Dict[str, Dict[str, Any]] = {
     "ice_suggest_perspectives": {"fn": ice_suggest_perspectives, "desc": "STORM-lite multi-perspective inquiry questions to guide exploratory research and learning"},
     "invoke_repointel_tool": {"fn": invoke_repointel_tool, "desc": "Invoke any RepoIntel tool dynamically by name"},
     "analyze_code_with_repointel": {"fn": analyze_code_with_repointel, "desc": "Ask RepoIntel to analyze code and auto-ingest into ICE evidence"},
+
+    # 13. Pedagogical & Cognitive Scaffolding Tools (LearnHarness Scaffolding)
+    "ice_tutor_probe": {"fn": ice_tutor_probe, "desc": "Bracket developer understanding edge (floor/ceiling) and diagnose cognitive modes (sound reasoning, misconceptions, blind copy-paste)"},
+    "ice_tutor_plan_map": {"fn": ice_tutor_plan_map, "desc": "Generate Minimal Dependency Tree DAG (Mermaid) from unconditional truths to goal"},
+    "ice_tutor_teach_step": {"fn": ice_tutor_teach_step, "desc": "Get atomic reasoning step: Predict prompt, motivated explanation, and check question"},
+    "ice_tutor_evaluate_check": {"fn": ice_tutor_evaluate_check, "desc": "Evaluate check answer and thinking trace with surgical repair feedback"},
+    "ice_tutor_practice_problem": {"fn": ice_tutor_practice_problem, "desc": "Pose active practice challenge (Recall, Discrimination, Composition) with hidden model solution"},
+    "ice_tutor_hint": {"fn": ice_tutor_hint, "desc": "Get progressive hint from 6-rung ladder (R0 Attention to R5 Solution)"},
+    "ice_tutor_explain_why": {"fn": ice_tutor_explain_why, "desc": "3Blue1Brown-style motivated architectural walkthrough of why code exists and what breaks if deleted"},
+    "ice_tutor_extract_knowledge": {"fn": ice_tutor_extract_knowledge, "desc": "Extract objective propositions and reasoning chains into persistent knowledge graph"},
 }
 
 
