@@ -835,97 +835,131 @@ async def repointel_get_file_snippet(
 
 
 # ======================================================================
-# 14. PEDAGOGICAL & COGNITIVE SCAFFOLDING TOOLS (LearnHarness Scaffolding)
+# 14. CODE UNDERSTANDING, DIAGRAMS & SOCRATIC GUIDANCE TOOLS
 # ======================================================================
 
 @_safe
-async def ice_tutor_probe(statement: str, thinking_trace: str = "") -> Dict[str, Any]:
-    """Bracket developer understanding edge (floor/ceiling) and diagnose cognitive mode.
-
-    Detects sound reasoning, misconceptions, unwarranted assumptions, slips, or
-    blind copy-paste patterns from stream-of-consciousness thinking traces.
-    """
-    from case_engine.pedagogy import PedagogyEngine
-    engine = PedagogyEngine()
-    result = engine.probe_learner_edge(statement, thinking_trace)
+async def ice_guide_probe(statement: str, thinking_trace: str = "") -> Dict[str, Any]:
+    """Bracket developer understanding edge and diagnose cognitive mode (sound reasoning, misconceptions, blind copy-paste)."""
+    from case_engine.code_understanding import CodeUnderstandingEngine
+    engine = CodeUnderstandingEngine()
+    result = engine.probe_developer_understanding(statement, thinking_trace)
     return result.model_dump()
 
 
 @_safe
-async def ice_tutor_plan_map(goal_statement: str, learner_level: str = "intermediate") -> Dict[str, Any]:
-    """Generate Minimal Dependency Tree DAG (Mermaid) from foundational truths to the goal.
-
-    Applies Principle i (Unconditional Truths First) and Principle ii (Motivated Discovery),
-    grounding nodes in RepoIntel AST symbols.
-    """
-    from case_engine.pedagogy import PedagogyEngine
-    engine = PedagogyEngine()
-    plan = engine.plan_minimal_tree(goal_statement, learner_level)
+async def ice_guide_plan(goal_statement: str, learner_level: str = "intermediate") -> Dict[str, Any]:
+    """Generate Minimal Dependency Tree DAG (Mermaid) from foundational invariants to the goal."""
+    from case_engine.code_understanding import CodeUnderstandingEngine
+    engine = CodeUnderstandingEngine()
+    plan = engine.plan_codebase_learning(goal_statement, learner_level)
     return plan.model_dump()
 
 
 @_safe
-async def ice_tutor_teach_step(plan_id: str, node_id: str) -> Dict[str, Any]:
-    """Get the next single reasoning step: Predict (before) -> Motivated Explanation -> Check (after).
-
-    Enforces single-step cognitive pacing so the developer never feels overwhelmed.
-    """
-    from case_engine.pedagogy import PedagogyEngine
-    engine = PedagogyEngine()
-    step = engine.get_teaching_step(plan_id, node_id)
+async def ice_guide_step(plan_id: str, node_id: str) -> Dict[str, Any]:
+    """Get atomic Socratic reasoning step: Predict (before) -> Motivated Explanation -> Graded Check."""
+    from case_engine.code_understanding import CodeUnderstandingEngine
+    engine = CodeUnderstandingEngine()
+    step = engine.get_code_learning_step(plan_id, node_id)
     return step.model_dump()
 
 
 @_safe
-async def ice_tutor_evaluate_check(
+async def ice_guide_evaluate(
     question: Dict[str, Any],
     answer: str,
     thinking_trace: str = "",
 ) -> Dict[str, Any]:
-    """Evaluate a check answer and thinking trace, giving surgical feedback without giving away answers."""
-    from case_engine.pedagogy import PedagogyEngine
-    engine = PedagogyEngine()
-    return engine.evaluate_check(question, answer, thinking_trace)
+    """Evaluate a Socratic check answer with surgical error localization."""
+    from case_engine.code_understanding import CodeUnderstandingEngine
+    engine = CodeUnderstandingEngine()
+    return engine.evaluate_socratic_check(question, answer, thinking_trace)
 
 
 @_safe
-async def ice_tutor_practice_problem(node_id: str, mode: str = "discrimination") -> Dict[str, Any]:
-    """Pose an active retrieval practice problem (Recall, Discrimination, Composition) with pre-computed hint ladder."""
-    from case_engine.pedagogy import PedagogyEngine
-    engine = PedagogyEngine()
-    problem = engine.generate_practice_problem(node_id, mode)
-    return problem.model_dump()
-
-
-@_safe
-async def ice_tutor_hint(
-    problem_id: str,
-    requested_rung: Optional[int] = None,
-    thinking_trace: str = "",
-) -> Dict[str, Any]:
-    """Get the next progressive hint from the 6-rung ladder (R0 Attention -> R1 Pattern -> R2 Class -> R3 Named -> R4 Outlined -> R5 Solution)."""
-    from case_engine.pedagogy import PedagogyEngine
-    engine = PedagogyEngine()
-    return engine.get_hint(problem_id, requested_rung, thinking_trace)
-
-
-@_safe
-async def ice_tutor_explain_why(symbol_name: str, repo_path: str = "") -> Dict[str, Any]:
+async def ice_guide_why_code(symbol_name: str, repo_path: str = "") -> Dict[str, Any]:
     """3Blue1Brown-style Motivated Architectural Walkthrough: Why does this code exist? What breaks if deleted?"""
-    from case_engine.pedagogy import PedagogyEngine
-    engine = PedagogyEngine()
+    from case_engine.code_understanding import CodeUnderstandingEngine
+    engine = CodeUnderstandingEngine()
     return engine.explain_why_this_code_exists(symbol_name, repo_path)
 
 
 @_safe
-async def ice_tutor_extract_knowledge(
+async def ice_guide_diagram(topic_or_symbol: str, diagram_type: str = "component") -> Dict[str, Any]:
+    """Generate interactive Mermaid diagrams: component architecture, sequence dataflow, state machine, or blast radius."""
+    from case_engine.code_understanding import CodeUnderstandingEngine
+    engine = CodeUnderstandingEngine()
+    diag = engine.generate_architecture_diagram(topic_or_symbol, diagram_type)
+    return diag.model_dump()
+
+
+@_safe
+async def ice_guide_ingest_notes(raw_notes: str, title: str = "Developer Scratchpad Notes") -> Dict[str, Any]:
+    """Parse developer scratchpads or ADRs into structured invariants, decisions, and open questions."""
+    from case_engine.code_understanding import CodeUnderstandingEngine
+    engine = CodeUnderstandingEngine()
+    record = engine.ingest_developer_notes(raw_notes, title)
+    return record.model_dump()
+
+
+@_safe
+async def ice_guide_side_inquiry(code_snippet: str, question: str) -> Dict[str, Any]:
+    """Answer a focused Socratic side question on a snippet without derailing the main case state."""
+    from case_engine.code_understanding import CodeUnderstandingEngine
+    engine = CodeUnderstandingEngine()
+    return engine.side_code_inquiry(code_snippet, question)
+
+
+@_safe
+async def ice_guide_anti_copy_paste(proposed_code: str, target_file: str) -> Dict[str, Any]:
+    """Socratic verification of AI-generated code to stop blind copy-pasting."""
+    from case_engine.code_understanding import CodeUnderstandingEngine
+    engine = CodeUnderstandingEngine()
+    return engine.verify_code_before_paste(proposed_code, target_file)
+
+
+@_safe
+async def ice_guide_practice(node_id: str, mode: str = "discrimination") -> Dict[str, Any]:
+    """Pose an active retrieval coding challenge (Recall, Discrimination, Composition) with pre-computed hint ladder."""
+    from case_engine.code_understanding import CodeUnderstandingEngine
+    engine = CodeUnderstandingEngine()
+    problem = engine.generate_practice_challenge(node_id, mode)
+    return problem.model_dump()
+
+
+@_safe
+async def ice_guide_hint(
+    problem_id: str,
+    requested_rung: Optional[int] = None,
+    thinking_trace: str = "",
+) -> Dict[str, Any]:
+    """Get the next progressive hint from the 6-rung ladder (R0 Attention to R5 Solution)."""
+    from case_engine.code_understanding import CodeUnderstandingEngine
+    engine = CodeUnderstandingEngine()
+    return engine.get_hint(problem_id, requested_rung, thinking_trace)
+
+
+@_safe
+async def ice_guide_extract_knowledge(
     case_id: str = "case_default",
     goal_statements: Optional[List[str]] = None,
 ) -> Dict[str, Any]:
     """Extract durable propositions and reasoning chains into the persistent knowledge graph."""
-    from case_engine.pedagogy import PedagogyEngine
-    engine = PedagogyEngine()
-    return engine.extract_propositions_and_chains(case_id, goal_statements)
+    from case_engine.code_understanding import CodeUnderstandingEngine
+    engine = CodeUnderstandingEngine()
+    return engine.extract_codebase_knowledge(case_id, goal_statements)
+
+
+# Backward-compatibility aliases
+ice_tutor_probe = ice_guide_probe
+ice_tutor_plan_map = ice_guide_plan
+ice_tutor_teach_step = ice_guide_step
+ice_tutor_evaluate_check = ice_guide_evaluate
+ice_tutor_practice_problem = ice_guide_practice
+ice_tutor_hint = ice_guide_hint
+ice_tutor_explain_why = ice_guide_why_code
+ice_tutor_extract_knowledge = ice_guide_extract_knowledge
 
 
 # ======================================================================
@@ -1020,15 +1054,29 @@ TOOLS: Dict[str, Dict[str, Any]] = {
     "invoke_repointel_tool": {"fn": invoke_repointel_tool, "desc": "Invoke any RepoIntel tool dynamically by name"},
     "analyze_code_with_repointel": {"fn": analyze_code_with_repointel, "desc": "Ask RepoIntel to analyze code and auto-ingest into ICE evidence"},
 
-    # 13. Pedagogical & Cognitive Scaffolding Tools (LearnHarness Scaffolding)
-    "ice_tutor_probe": {"fn": ice_tutor_probe, "desc": "Bracket developer understanding edge (floor/ceiling) and diagnose cognitive modes (sound reasoning, misconceptions, blind copy-paste)"},
-    "ice_tutor_plan_map": {"fn": ice_tutor_plan_map, "desc": "Generate Minimal Dependency Tree DAG (Mermaid) from unconditional truths to goal"},
-    "ice_tutor_teach_step": {"fn": ice_tutor_teach_step, "desc": "Get atomic reasoning step: Predict prompt, motivated explanation, and check question"},
-    "ice_tutor_evaluate_check": {"fn": ice_tutor_evaluate_check, "desc": "Evaluate check answer and thinking trace with surgical repair feedback"},
-    "ice_tutor_practice_problem": {"fn": ice_tutor_practice_problem, "desc": "Pose active practice challenge (Recall, Discrimination, Composition) with hidden model solution"},
-    "ice_tutor_hint": {"fn": ice_tutor_hint, "desc": "Get progressive hint from 6-rung ladder (R0 Attention to R5 Solution)"},
-    "ice_tutor_explain_why": {"fn": ice_tutor_explain_why, "desc": "3Blue1Brown-style motivated architectural walkthrough of why code exists and what breaks if deleted"},
-    "ice_tutor_extract_knowledge": {"fn": ice_tutor_extract_knowledge, "desc": "Extract objective propositions and reasoning chains into persistent knowledge graph"},
+    # 13. Code Understanding, Architecture Diagrams & Socratic Guidance Tools
+    "ice_guide_probe": {"fn": ice_guide_probe, "desc": "Bracket developer understanding edge (floor/ceiling) and diagnose cognitive modes (sound reasoning, misconceptions, blind copy-paste)"},
+    "ice_guide_plan": {"fn": ice_guide_plan, "desc": "Generate Minimal Dependency Tree DAG (Mermaid) from foundational invariants to goal"},
+    "ice_guide_step": {"fn": ice_guide_step, "desc": "Get atomic Socratic reasoning step: Predict prompt, motivated explanation, and check question"},
+    "ice_guide_evaluate": {"fn": ice_guide_evaluate, "desc": "Evaluate Socratic check answer with surgical error localization and feedback"},
+    "ice_guide_why_code": {"fn": ice_guide_why_code, "desc": "3Blue1Brown-style motivated architectural walkthrough of why code exists and what breaks if deleted"},
+    "ice_guide_diagram": {"fn": ice_guide_diagram, "desc": "Generate interactive Mermaid diagrams: component architecture, sequence dataflow, state machine, or blast radius"},
+    "ice_guide_ingest_notes": {"fn": ice_guide_ingest_notes, "desc": "Parse developer scratchpads or ADRs into structured invariants, decisions, and open questions"},
+    "ice_guide_side_inquiry": {"fn": ice_guide_side_inquiry, "desc": "Answer a focused Socratic side question on a snippet without derailing main case state"},
+    "ice_guide_anti_copy_paste": {"fn": ice_guide_anti_copy_paste, "desc": "Socratic verification of AI-generated code before pasting into repository files"},
+    "ice_guide_practice": {"fn": ice_guide_practice, "desc": "Pose active coding challenge (Recall, Discrimination, Composition) with pre-computed hint ladder"},
+    "ice_guide_hint": {"fn": ice_guide_hint, "desc": "Get progressive hint from 6-rung ladder (R0 Attention to R5 Solution)"},
+    "ice_guide_extract_knowledge": {"fn": ice_guide_extract_knowledge, "desc": "Extract durable propositions and reasoning chains into persistent knowledge graph"},
+
+    # Backwards-compatibility aliases
+    "ice_tutor_probe": {"fn": ice_tutor_probe, "desc": "Alias: Bracket developer understanding edge"},
+    "ice_tutor_plan_map": {"fn": ice_tutor_plan_map, "desc": "Alias: Generate Minimal Dependency Tree DAG"},
+    "ice_tutor_teach_step": {"fn": ice_tutor_teach_step, "desc": "Alias: Get atomic reasoning step"},
+    "ice_tutor_evaluate_check": {"fn": ice_tutor_evaluate_check, "desc": "Alias: Evaluate check answer and thinking trace"},
+    "ice_tutor_practice_problem": {"fn": ice_tutor_practice_problem, "desc": "Alias: Pose active practice challenge"},
+    "ice_tutor_hint": {"fn": ice_tutor_hint, "desc": "Alias: Get progressive hint from 6-rung ladder"},
+    "ice_tutor_explain_why": {"fn": ice_tutor_explain_why, "desc": "Alias: Motivated architectural walkthrough of code"},
+    "ice_tutor_extract_knowledge": {"fn": ice_tutor_extract_knowledge, "desc": "Alias: Extract propositions and reasoning chains"},
 }
 
 

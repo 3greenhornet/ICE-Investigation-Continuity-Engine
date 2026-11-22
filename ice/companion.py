@@ -38,18 +38,19 @@ if str(_ICE_DIR) not in sys.path:
     sys.path.insert(0, str(_ICE_DIR))
 
 from case_engine.repointel_client import RepoIntelClient  # noqa: E402
-from case_engine.pedagogy import PedagogyEngine  # noqa: E402
+from case_engine.code_understanding import CodeUnderstandingEngine  # noqa: E402
 
 logger = logging.getLogger("ice.companion")
 
 
 class DevelopmentCompanion:
-    """Zero-cost autonomous coordinator orchestrating ICE, RepoIntel, and Pedagogy."""
+    """Zero-cost autonomous coordinator orchestrating ICE, RepoIntel, and Code Understanding."""
 
     def __init__(self, case_id: str = "case_default"):
         self.case_id = case_id
         self.repointel = RepoIntelClient()
-        self.pedagogy = PedagogyEngine(repointel_client=self.repointel)
+        self.guide = CodeUnderstandingEngine(repointel_client=self.repointel)
+        self.pedagogy = self.guide  # backward compatibility alias
 
     def get_status_overview(self) -> Dict[str, Any]:
         """Aggregate high-level status across ICE and RepoIntel."""
@@ -63,16 +64,9 @@ class DevelopmentCompanion:
         }
 
     def advise_next_step(self, goal_statement: str, clarity_level: int = 2) -> Dict[str, Any]:
-        """Synthesize ICE goal clarity with RepoIntel code reality.
-
-        If the project/goal is at clarity level 1 or 2 (vague / emerging),
-        it treats missing callers as EXPECTED rather than a defect, and guides
-        the developer on what scaffolding to build first.
-        """
-        # 1. Ask RepoIntel for AST and call edge reality
+        """Synthesize ICE goal clarity with RepoIntel code reality."""
         maturity = self.repointel.check_goal_code_maturity("g_temp", goal_statement)
 
-        # 2. Formulate guidance
         actions = []
         if maturity.suggested_maturity == "no_candidate":
             if clarity_level <= 2:
@@ -84,7 +78,7 @@ class DevelopmentCompanion:
                 actions.append(f"Scaffold core class/function implementing '{goal_statement}'.")
         elif maturity.suggested_maturity == "candidate":
             status_note = f"Candidate code exists ({', '.join(maturity.candidate_symbols[:2])}), but is NOT yet wired into application callers."
-            actions.append(f"Connect candidate symbols to API router or workflow dispatchers.")
+            actions.append("Connect candidate symbols to API router or workflow dispatchers.")
             actions.append("Verify if any callers are awaiting integration.")
         elif maturity.suggested_maturity == "connected":
             status_note = f"Code is wired and called by {len(maturity.callers_found)} callers, but lacks automated tests."
@@ -106,7 +100,6 @@ class DevelopmentCompanion:
 
     def suggest_research_perspectives(self, topic: str) -> List[Dict[str, str]]:
         """STORM-lite perspective discovery to help beginners and pros explore."""
-        # Standard analytical dimensions for software systems
         dimensions = [
             ("Reliability & Failure Modes", "What happens when network timeouts, partial writes, or corrupted state occur?"),
             ("Security & Boundary Checks", "Who authorizes this call, and are inputs validated before processing?"),
@@ -119,35 +112,53 @@ class DevelopmentCompanion:
             for d in dimensions
         ]
 
-    # Pedagogical Scaffolding & Anti-Blind-Copy-Paste Methods
+    # Code Understanding, Socratic Scaffolding & Notes Guide Methods
     def probe_understanding(self, statement: str, thinking_trace: str = "") -> Dict[str, Any]:
         """Assess developer edge and mental models to prevent blind copy-pasting."""
-        bracket = self.pedagogy.probe_learner_edge(statement, thinking_trace)
+        bracket = self.guide.probe_developer_understanding(statement, thinking_trace)
         return bracket.model_dump()
 
     def build_learning_plan(self, goal_statement: str, learner_level: str = "intermediate") -> Dict[str, Any]:
         """Generate a Minimal Dependency Tree DAG applying Principle i and Principle ii."""
-        plan = self.pedagogy.plan_minimal_tree(goal_statement, learner_level)
+        plan = self.guide.plan_codebase_learning(goal_statement, learner_level)
         return plan.model_dump()
 
     def explain_why_code_exists(self, symbol: str) -> Dict[str, Any]:
         """3Blue1Brown-style Motivated Architectural Walkthrough for a symbol."""
-        return self.pedagogy.explain_why_this_code_exists(symbol)
+        return self.guide.explain_why_this_code_exists(symbol)
+
+    def generate_diagram(self, topic_or_symbol: str, diagram_type: str = "component") -> Dict[str, Any]:
+        """Generate Mermaid architecture, sequence, state, or blast radius diagrams."""
+        diag = self.guide.generate_architecture_diagram(topic_or_symbol, diagram_type)
+        return diag.model_dump()
+
+    def ingest_notes(self, raw_notes: str, title: str = "Developer Scratchpad Notes") -> Dict[str, Any]:
+        """Parse developer scratchpads / ADRs into structured decisions and invariants."""
+        record = self.guide.ingest_developer_notes(raw_notes, title)
+        return record.model_dump()
+
+    def ask_side_inquiry(self, code_snippet: str, question: str) -> Dict[str, Any]:
+        """Answer a Socratic side inquiry on a snippet without altering case state."""
+        return self.guide.side_code_inquiry(code_snippet, question)
+
+    def verify_before_paste(self, proposed_code: str, target_file: str) -> Dict[str, Any]:
+        """Socratic verification of AI-generated code to stop blind copy-pasting."""
+        return self.guide.verify_code_before_paste(proposed_code, target_file)
 
     def practice_problem(self, node_id: str, mode: str = "discrimination") -> Dict[str, Any]:
         """Generate active retrieval practice challenge with hidden solution and 6-rung hint ladder."""
-        prob = self.pedagogy.generate_practice_problem(node_id, mode)
+        prob = self.guide.generate_practice_challenge(node_id, mode)
         return prob.model_dump()
 
     def get_hint(self, problem_id: str, rung: Optional[int] = None, thinking_trace: str = "") -> Dict[str, Any]:
         """Get the next minimal hint from the 6-rung ladder."""
-        return self.pedagogy.get_hint(problem_id, rung, thinking_trace)
+        return self.guide.get_hint(problem_id, rung, thinking_trace)
 
 
 def print_banner():
     print("=" * 72)
-    print("  ICE × REPOINTEL — CONTINUOUS DEVELOPMENT & LEARNING COMPANION")
-    print("  Zero-Cost Guidance, Pedagogical Scaffolding & Anti-Copy-Paste Mode")
+    print("  ICE × REPOINTEL — CONTINUOUS DEVELOPMENT & CODE UNDERSTANDING COMPANION")
+    print("  Zero-Cost Guidance, Architecture Diagrams, Notes Guide & Anti-Copy-Paste")
     print("=" * 72)
 
 
@@ -164,17 +175,21 @@ def interactive_loop():
               f"{status['codebase_architecture'].get('call_edges_count', 0)} call edges")
 
     print("\nInvestigation & Code Commands:")
-    print("  next <goal text>     - Check code maturity & get actionable next steps")
-    print("  perspectives <topic> - Discover STORM-lite research perspectives & gaps")
-    print("  search <query>       - Search RepoIntel AST symbols & callers")
-    print("  hubs                 - View top architectural hub functions in the codebase")
-    print("\nPedagogical & Learning Commands (LearnHarness Scaffolding):")
-    print("  probe <your thoughts>- Bracket your understanding edge & check for blind copy-paste")
-    print("  learn <goal>         - Generate Minimal Dependency Tree DAG (Mermaid)")
-    print("  why <symbol>         - Motivated discovery: Why does this code exist?")
-    print("  practice <topic>     - Active retrieval challenge with 6-rung hint ladder")
-    print("  hint <prob_id>       - Get the next minimal hint rung (R0 to R5)")
-    print("  exit                 - Quit companion\n")
+    print("  next <goal text>           - Check code maturity & get actionable next steps")
+    print("  perspectives <topic>       - Discover STORM-lite research perspectives & gaps")
+    print("  search <query>             - Search RepoIntel AST symbols & callers")
+    print("  hubs                       - View top architectural hub functions in the codebase")
+    print("\nCode Understanding & Socratic Guidance:")
+    print("  probe <your thoughts>      - Bracket your understanding edge & check for blind copy-paste")
+    print("  learn <goal>               - Generate Minimal Dependency Tree DAG (Mermaid)")
+    print("  why <symbol>               - Motivated discovery: Why does this code exist?")
+    print("  diagram <symbol> [type]    - Generate Mermaid diagram (component|sequence|state_machine|blast_radius)")
+    print("  notes <markdown text>      - Ingest developer notes / ADR into structured invariants")
+    print("  ask <snippet> | <question> - Socratic side inquiry on a code snippet")
+    print("  verify <file> <code>       - Socratic check on AI code before pasting to disk")
+    print("  practice <topic>           - Active retrieval challenge with 6-rung hint ladder")
+    print("  hint <prob_id>             - Get the next minimal hint rung (R0 to R5)")
+    print("  exit                       - Quit companion\n")
 
     last_problem_id = None
 
@@ -242,7 +257,7 @@ def interactive_loop():
                 print("Usage: probe <describe your understanding or what you are trying to do>")
                 continue
             res = companion.probe_understanding(arg)
-            print(f"\n[Pedagogy Probe] Developer Level: {res['learner_level'].upper()}")
+            print(f"\n[Developer Probe] Level: {res['learner_level'].upper()}")
             print(f"[Cognitive Mode ] {res['cognitive_mode'].upper()}")
             print(f"[Floor / Held   ] {res['floor']}")
             print(f"[Ceiling / Edge ] {res['ceiling']}")
@@ -283,6 +298,68 @@ def interactive_loop():
             print(f"  {why['anti_copy_paste_advice']}")
             print()
 
+        elif cmd == "diagram":
+            if not arg:
+                print("Usage: diagram <symbol_or_topic> [component|sequence|state_machine|blast_radius]")
+                continue
+            diag_parts = arg.split(" ", 1)
+            target = diag_parts[0]
+            dtype = diag_parts[1].strip() if len(diag_parts) > 1 else "component"
+            diag = companion.generate_diagram(target, dtype)
+            print(f"\n[{diag['title']}] Type: {diag['diagram_type'].upper()}")
+            print(f"Explanation: {diag['explanation']}")
+            print("\nMermaid Code:")
+            print(diag['mermaid_code'])
+            print()
+
+        elif cmd == "notes":
+            if not arg:
+                print("Usage: notes <paste your markdown notes or ADR decisions>")
+                continue
+            nrec = companion.ingest_notes(arg)
+            print(f"\n[Ingested Notes] ID: {nrec['note_id']} | Title: {nrec['title']}")
+            print(f"Summary: {nrec['summary']}")
+            if nrec['invariants_extracted']:
+                print("Extracted Invariants:")
+                for inv in nrec['invariants_extracted']:
+                    print(f"  * {inv}")
+            if nrec['decisions_made']:
+                print("Decisions Recorded:")
+                for dec in nrec['decisions_made']:
+                    print(f"  * {dec}")
+            if nrec['open_questions']:
+                print("Open Questions:")
+                for q in nrec['open_questions']:
+                    print(f"  ? {q}")
+            print()
+
+        elif cmd == "ask":
+            if "|" not in arg:
+                print("Usage: ask <code snippet> | <your specific question>")
+                continue
+            snippet_part, question_part = arg.split("|", 1)
+            side = companion.ask_side_inquiry(snippet_part.strip(), question_part.strip())
+            print(f"\n[Socratic Side Inquiry] Question: {side['question']}")
+            print(f"Explanation:\n{side['socratic_explanation']}")
+            print(f"Key Invariant: {side['invariant_to_remember']}\n")
+
+        elif cmd == "verify":
+            vparts = arg.split(" ", 1)
+            if len(vparts) < 2:
+                print("Usage: verify <target_file> <proposed code>")
+                continue
+            tfile = vparts[0].strip()
+            pcode = vparts[1].strip()
+            v_res = companion.verify_before_paste(pcode, tfile)
+            print(f"\n[Anti-Copy-Paste Guard] Target: {v_res['target_file']} ({v_res['lines_to_paste']} lines)")
+            print("Detected Hazards:")
+            for h in v_res['detected_hazards']:
+                print(f"  ! {h}")
+            print("\nSocratic Checkpoints:")
+            for sc in v_res['socratic_checkpoint']:
+                print(f"  {sc}")
+            print(f"\nAdvice: {v_res['verification_advice']}\n")
+
         elif cmd == "practice":
             topic = arg or "core-invariants"
             prob = companion.practice_problem(topic)
@@ -306,7 +383,7 @@ def interactive_loop():
                 print(f"Advice: {h['doctrine_reminder']}\n")
 
         else:
-            print(f"Unknown command '{cmd}'. Try 'next', 'probe', 'learn', 'why', 'practice', 'hint', 'search', or 'hubs'.")
+            print(f"Unknown command '{cmd}'. Try 'next', 'probe', 'learn', 'why', 'diagram', 'notes', 'ask', 'verify', 'practice', or 'hint'.")
 
 
 def main():
