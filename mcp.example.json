@@ -1,0 +1,22 @@
+{
+  "mcpServers": {
+    "ice": {
+      "command": "python",
+      "args": ["-m", "app.mcp.server"],
+      "cwd": "C:/dev/HARI ICE VERSIONS/hari ice by z.ai/ICE-improved/ice",
+      "env": {
+        "REPOINTEL_URL": "http://localhost:8000"
+      }
+    },
+    "repointel": {
+      "command": "python",
+      "args": ["-m", "app.core.mcp.server"],
+      "cwd": "C:/Users/sreen/OneDrive/Pictures/Bharath Gitam/ai !411/repo intel ai/repointel-ai-2/backend",
+      "env": {
+        "ICE_URL": "http://localhost:8001",
+        "GRAPH_STORE": "sqlite",
+        "RELATIONAL_STORE": "sqlite"
+      }
+    }
+  }
+}

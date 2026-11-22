@@ -164,6 +164,32 @@ cd chatbot-recommender/recommender
 python demo.py
 ```
 
+### 4. Model Context Protocol (MCP) Server (Claude Code, Cursor, Windsurf)
+
+ICE provides a 46-tool Model Context Protocol server exposing case management, inductive hypotheses, ACH matrix evaluation, Evolving Project Model (goals), and codebase grounding over `stdio`.
+
+Run standalone:
+```bash
+cd ice
+python -m app.mcp.server
+```
+
+Connect in Claude Code (`~/.config/claude/mcp.json`) or Cursor (`mcp.json`):
+```json
+{
+  "mcpServers": {
+    "ice": {
+      "command": "python",
+      "args": ["-m", "app.mcp.server"],
+      "cwd": "C:/dev/HARI ICE VERSIONS/hari ice by z.ai/ICE-improved/ice",
+      "env": {
+        "REPOINTEL_URL": "http://localhost:8000"
+      }
+    }
+  }
+}
+```
+
 ---
 
 ## Verification & Testing

@@ -19,3 +19,9 @@ __pycache__/
 
 .DS_Store
 Thumbs.db
+
+# Repomix outputs
+*repomix*
+*.xml
+ICE-comparision.md
+icenov16-repomix.md
