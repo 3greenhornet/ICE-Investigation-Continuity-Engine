@@ -1,0 +1,41 @@
+{
+  "output": {
+    "style": "markdown",
+    "filePath": "icenov16-repomix.md",
+    "removeComments": false,
+    "showLineNumbers": false
+  },
+  "ignore": {
+    "useGitignore": true,
+    "useDefaultPatterns": true,
+    "customPatterns": [
+      "*repomix*",
+      "*repomix*.*",
+      "*.repomix.*",
+      "repomix-output.*",
+      "repomix-output.xml",
+      "repo intel's repomix-output.xml",
+      "repointel-full-codebase repomix-output.md",
+      "icenov16-repomix.md",
+      "iceno16*",
+      "*icenov16*",
+      "ICE-comparision.md",
+      "ICE-comparison.md",
+      "*.repomix.md",
+      "*.repomix.xml",
+      "*.repomix.json",
+      "*.xml",
+      "*.sqlite",
+      "*.sqlite3",
+      "*.db",
+      "*.db-shm",
+      "*.db-wal",
+      "*.log",
+      ".venv/**",
+      "venv/**",
+      "env/**",
+      "__pycache__/**",
+      "*.pyc"
+    ]
+  }
+}

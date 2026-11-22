@@ -790,6 +790,51 @@ async def analyze_code_with_repointel(
 
 
 # ======================================================================
+# 13. CONTINUOUS COMPANION & REPOINTEL PRECISION
+# ======================================================================
+
+@_safe
+async def ice_advise_next_step(
+    statement: str,
+    clarity_level: int = 2,
+    case_id: str = "case_default",
+) -> Dict[str, Any]:
+    """Advise actionable next steps for in-progress or emerging project goals without false alarms."""
+    from companion import DevelopmentCompanion
+    companion = DevelopmentCompanion(case_id=case_id)
+    return companion.advise_next_step(goal_statement=statement, clarity_level=clarity_level)
+
+
+@_safe
+async def ice_suggest_perspectives(topic: str = "Software Architecture") -> Dict[str, Any]:
+    """STORM-lite multi-perspective inquiry questions to guide exploratory research and learning."""
+    from companion import DevelopmentCompanion
+    companion = DevelopmentCompanion()
+    perspectives = companion.suggest_research_perspectives(topic=topic)
+    return {"topic": topic, "perspectives": perspectives}
+
+
+@_safe
+async def repointel_explain_finding(finding_id: str) -> Dict[str, Any]:
+    """Retrieve detailed explanation, rule details, severity, and remediation advice for a finding."""
+    from case_engine.repointel_client import RepoIntelClient
+    client = RepoIntelClient()
+    return client.explain_finding(finding_id=finding_id)
+
+
+@_safe
+async def repointel_get_file_snippet(
+    file_path: str,
+    start_line: int = 1,
+    end_line: int = 100,
+) -> Dict[str, Any]:
+    """Read a specific sanitized excerpt of code from a file indexed by RepoIntel."""
+    from case_engine.repointel_client import RepoIntelClient
+    client = RepoIntelClient()
+    return client.get_file_snippet(file_path=file_path, start_line=start_line, end_line=end_line)
+
+
+# ======================================================================
 # MASTER TOOLS REGISTRY
 # ======================================================================
 
@@ -860,6 +905,8 @@ TOOLS: Dict[str, Dict[str, Any]] = {
     "repointel_get_impact": {"fn": repointel_get_impact, "desc": "Calculate recursive blast radius and upstream caller tree using SQLite Recursive CTE"},
     "repointel_get_architecture": {"fn": repointel_get_architecture, "desc": "Get repository architecture and core components"},
     "repointel_get_findings": {"fn": repointel_get_findings, "desc": "Get static code analysis findings and smells"},
+    "repointel_explain_finding": {"fn": repointel_explain_finding, "desc": "Explain a specific static analysis finding with rule detail and remediation"},
+    "repointel_get_file_snippet": {"fn": repointel_get_file_snippet, "desc": "Read a specific line range from a file indexed in RepoIntel"},
     "repointel_search_symbols": {"fn": repointel_search_symbols, "desc": "Search AST symbols matching a pattern"},
     "repointel_list_gaps": {"fn": repointel_list_gaps, "desc": "List codebase gaps (test, doc, stub, error handling)"},
     "repointel_get_health_score": {"fn": repointel_get_health_score, "desc": "Calculate codebase health score (0-100) and grade (A-D)"},
@@ -873,7 +920,9 @@ TOOLS: Dict[str, Dict[str, Any]] = {
     "ice_repointel_callers": {"fn": repointel_get_callers, "desc": "Alias: find function/class callers and downstream dependencies"},
     "ice_repointel_architecture": {"fn": repointel_get_architecture, "desc": "Alias: get repository architecture and core components"},
 
-    # 12. Bridge Tools
+    # 12. Bridge & Development Guidance Tools
+    "ice_advise_next_step": {"fn": ice_advise_next_step, "desc": "Advise actionable next steps for in-progress or emerging project goals without false alarms"},
+    "ice_suggest_perspectives": {"fn": ice_suggest_perspectives, "desc": "STORM-lite multi-perspective inquiry questions to guide exploratory research and learning"},
     "invoke_repointel_tool": {"fn": invoke_repointel_tool, "desc": "Invoke any RepoIntel tool dynamically by name"},
     "analyze_code_with_repointel": {"fn": analyze_code_with_repointel, "desc": "Ask RepoIntel to analyze code and auto-ingest into ICE evidence"},
 }

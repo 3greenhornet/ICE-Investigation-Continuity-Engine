@@ -168,3 +168,35 @@ async def repointel_code_maturity(req: CodeMaturityRequest):
         target_kind=req.kind,
     )
     return assessment.__dict__
+
+
+class AdviseRequest(BaseModel):
+    statement: str
+    clarity_level: int = 2
+    case_id: str = "case_default"
+
+
+@router.post("/advise")
+async def repointel_advise(req: AdviseRequest):
+    """Advise actionable next steps for in-progress or emerging project goals without false alarms."""
+    from companion import DevelopmentCompanion
+    comp = DevelopmentCompanion(case_id=req.case_id)
+    return comp.advise_next_step(goal_statement=req.statement, clarity_level=req.clarity_level)
+
+
+@router.get("/findings/{finding_id}/explain")
+async def repointel_explain_finding(finding_id: str, repo_id: Optional[str] = Query(None)):
+    """Retrieve detailed explanation, rule details, severity, and remediation advice for a finding."""
+    client = RepoIntelClient()
+    return client.explain_finding(finding_id=finding_id, repo_id=repo_id)
+
+
+@router.get("/file")
+async def repointel_file(
+    path: str = Query(..., description="File path relative to repository root"),
+    start: int = Query(1, ge=1),
+    end: int = Query(100, ge=1),
+):
+    """Read a sanitized excerpt of code from a file indexed by RepoIntel."""
+    client = RepoIntelClient()
+    return client.get_file_snippet(file_path=path, start_line=start, end_line=end)

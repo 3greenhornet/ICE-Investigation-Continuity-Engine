@@ -78,6 +78,8 @@ class RepoIntelBridge:
             "find_symbol_references": ("GET", f"/api/v1/impact/{repo_id}", {"symbol": arguments.get("symbol")}),
             "list_gaps": ("GET", f"/api/v1/repos/{repo_id}/gaps", {}),
             "get_health_score": ("GET", f"/api/v1/repos/{repo_id}/health-score", {}),
+            "explain_finding": ("GET", f"/api/v1/findings/{repo_id}", {"finding_id": arguments.get("finding_id")}),
+            "get_file_snippet": ("GET", f"/api/v1/repos/{repo_id}/file", {"path": arguments.get("file_path"), "start": arguments.get("start_line"), "end": arguments.get("end_line")}),
         }
         if tool_name not in mapping:
             return {"error": f"Unknown REST tool mapping: {tool_name}"}
@@ -225,6 +227,19 @@ class RepoIntelBridge:
                     target_kind=arguments.get("target_kind", "goal")
                 )
                 return mat.__dict__
+
+            if tool_name == "explain_finding":
+                return self._sqlite_client.explain_finding(
+                    finding_id=arguments.get("finding_id", ""),
+                    repo_id=arguments.get("repo_id"),
+                )
+
+            if tool_name in ("get_file_snippet", "get_file_content"):
+                return self._sqlite_client.get_file_snippet(
+                    file_path=arguments.get("file_path", ""),
+                    start_line=arguments.get("start_line", 1),
+                    end_line=arguments.get("end_line", 100),
+                )
 
             return {"error": f"Tool '{tool_name}' not supported in offline SQLite fallback"}
         except Exception as exc:

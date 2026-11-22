@@ -1,15 +1,22 @@
 # Repomix Ignore Patterns
 
-# Repomix output bundles and archives (prevent recursive self-inclusion)
+# Repomix output bundles, snapshots and archives (prevent recursive self-inclusion)
 *repomix*
 *repomix*.*
+*.repomix.*
 repomix-output.*
+repomix-output.xml
 repo intel's repomix-output.xml
+repointel-full-codebase repomix-output.md
 icenov16-repomix.md
+iceno16*
+*icenov16*
 ICE-comparision.md
+ICE-comparison.md
 *.repomix.md
 *.repomix.xml
 *.repomix.json
+*.xml
 
 # Virtual environments
 .venv/

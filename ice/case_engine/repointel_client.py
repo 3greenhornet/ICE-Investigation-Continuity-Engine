@@ -345,6 +345,108 @@ class RepoIntelClient:
         finally:
             conn.close()
 
+    def explain_finding(self, finding_id: str, repo_id: Optional[str] = None) -> Dict[str, Any]:
+        """Retrieve in-depth rule description, severity, and remediation advice for a specific finding."""
+        conn = self._get_connection()
+        if not conn:
+            return {"error": "RepoIntel database unavailable"}
+        try:
+            cur = conn.cursor()
+            cur.execute(
+                """
+                SELECT id, rule_id, severity, finding_type, message, file_path, line_start, line_end, tool, confidence, metadata
+                FROM findings
+                WHERE id = ? OR rule_id = ?
+                LIMIT 1
+                """,
+                (finding_id, finding_id),
+            )
+            row = cur.fetchone()
+            if not row:
+                return {"error": f"Finding '{finding_id}' not found"}
+
+            meta = {}
+            if row[10]:
+                try:
+                    meta = json.loads(row[10])
+                except Exception:
+                    pass
+
+            return {
+                "finding_id": row[0],
+                "rule_id": row[1],
+                "severity": row[2],
+                "finding_type": row[3],
+                "message": row[4],
+                "file_path": row[5],
+                "line_start": row[6],
+                "line_end": row[7],
+                "tool": row[8],
+                "confidence": row[9],
+                "metadata": meta,
+            }
+        finally:
+            conn.close()
+
+    def get_file_snippet(
+        self, file_path: str, start_line: Optional[int] = 1, end_line: Optional[int] = 100
+    ) -> Dict[str, Any]:
+        """Read a sanitized excerpt of code from a file indexed by RepoIntel."""
+        norm_path = file_path.replace("\\", "/").strip()
+        if ".." in norm_path.split("/") or norm_path.startswith("/"):
+            return {"error": "Path traversal rejected", "file_path": file_path}
+
+        target_file = None
+        for base in DEFAULT_REPOINTEL_PATHS:
+            if not base or not os.path.exists(base):
+                continue
+            cand = os.path.join(base, file_path)
+            if os.path.exists(cand) and os.path.isfile(cand):
+                target_file = cand
+                break
+            cand_backend = os.path.join(base, "backend", file_path)
+            if os.path.exists(cand_backend) and os.path.isfile(cand_backend):
+                target_file = cand_backend
+                break
+
+        if target_file and os.path.isfile(target_file):
+            try:
+                with open(target_file, "r", encoding="utf-8", errors="replace") as f:
+                    all_lines = f.readlines()
+                start = max(1, start_line or 1)
+                end = min(len(all_lines), end_line or len(all_lines))
+                snippet = "".join(all_lines[start - 1 : end])
+                return {
+                    "file_path": file_path,
+                    "start_line": start,
+                    "end_line": end,
+                    "total_lines": len(all_lines),
+                    "content": snippet,
+                }
+            except Exception as exc:
+                logger.warning("Could not read file %s: %s", target_file, exc)
+
+        conn = self._get_connection()
+        if conn:
+            try:
+                cur = conn.cursor()
+                cur.execute(
+                    "SELECT qualified_name, entity_type, source_code FROM nodes WHERE file_path LIKE ? LIMIT 5",
+                    (f"%{file_path}%",),
+                )
+                nodes = cur.fetchall()
+                if nodes:
+                    combined = "\n\n".join(f"# {n[1]}: {n[0]}\n{n[2]}" for n in nodes)
+                    return {
+                        "file_path": file_path,
+                        "source": "ast_nodes",
+                        "content": combined[:4000],
+                    }
+            finally:
+                conn.close()
+
+        return {"error": f"File '{file_path}' not found", "file_path": file_path}
+
     def get_callees(self, symbol_name: str, limit: int = 20) -> List[Dict[str, str]]:
         """Find functions or classes called downstream by the given symbol."""
         conn = self._get_connection()
