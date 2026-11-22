@@ -82,3 +82,54 @@ async def test_mcp_tool_advise_next_step():
     advise = resp["result"]["structured"]
     assert "code_maturity" in advise
     assert "recommended_actions" in advise
+
+
+def test_repointel_executor_routing():
+    from datetime import datetime, timezone
+    from case_engine.action import default_executor_for, RepoIntelExecutor, WebSearchExecutor
+    from case_engine.schemas import Action
+
+    now = datetime.now(timezone.utc)
+
+    # 1. URL search routes to WebSearchExecutor
+    web_action = Action(
+        action_id="act_web",
+        case_id="case_1",
+        action_type="SEARCH",
+        target="https://example.com/api/docs",
+        expected_outcome="",
+        status="approved",
+        created_at=now,
+    )
+    assert isinstance(default_executor_for(web_action), WebSearchExecutor)
+
+    # 2. Natural language / code search routes to RepoIntelExecutor
+    code_action = Action(
+        action_id="act_code",
+        case_id="case_1",
+        action_type="SEARCH",
+        target="Search for authentication tokens in repository",
+        expected_outcome="",
+        status="approved",
+        created_at=now,
+    )
+    assert isinstance(default_executor_for(code_action), RepoIntelExecutor)
+
+    # 3. Explicit symbol/repo target routes to RepoIntelExecutor
+    symbol_action = Action(
+        action_id="act_sym",
+        case_id="case_1",
+        action_type="INSPECT",
+        target="auth_service",
+        result_payload={"symbol": "auth_service", "target": "code"},
+        expected_outcome="",
+        status="approved",
+        created_at=now,
+    )
+    assert isinstance(default_executor_for(symbol_action), RepoIntelExecutor)
+
+
+def test_thought_model_tz_aware():
+    from models.thought import Thought
+    t = Thought(id="th_1", content="test thinking", originating_turn=1, last_active_turn=1)
+    assert t.created_at.tzinfo is not None

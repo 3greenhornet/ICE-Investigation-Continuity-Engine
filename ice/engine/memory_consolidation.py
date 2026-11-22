@@ -309,7 +309,7 @@ async def archive_old_memories(session_id: str, older_than_days: int = ARCHIVE_O
     # Use naive UTC datetime — the memories.created_at column is
     # TIMESTAMP WITHOUT TIME ZONE, so passing an aware datetime causes
     # "can't subtract offset-naive and offset-aware datetimes".
-    cutoff_date = datetime.utcnow() - timedelta(days=older_than_days)
+    cutoff_date = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(days=older_than_days)
 
     async with pool.acquire() as conn:
         old_memories = await conn.fetch("""

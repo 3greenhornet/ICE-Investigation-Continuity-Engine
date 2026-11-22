@@ -1374,6 +1374,116 @@ class RevisitHypothesisExecutor:
         )
 
 
+class RepoIntelExecutor:
+    """REPO_INTEL / code-search executor: queries RepoIntel and ingests code evidence.
+
+    Fulfills the core promise of the combined system:
+    - Routes code investigation actions (SEARCH on non-URLs, RETRIEVE on code,
+      INSPECT on symbols, REPO_INTEL actions) into actual RepoIntel queries.
+    - Queries AST nodes, symbols, callers, callees, blast radius, or SAST findings.
+    - Writes the results back into ICE as real evidence with origin='repo_observation'.
+    """
+
+    async def execute(self, action: Action) -> ExecutionResult:
+        from case_engine.repointel_client import RepoIntelClient
+        from case_engine.evidence import ingest_evidence, _create_source
+
+        client = RepoIntelClient()
+        if not client.is_available:
+            return ExecutionResult(
+                OUTCOME_UNSUPPORTED,
+                notes="RepoIntel database not available for code intelligence action.",
+            )
+
+        params = getattr(action, "result_payload", {}) or {}
+        target = action.target or ""
+        query = params.get("query") or params.get("symbol") or target
+        symbol = params.get("symbol")
+        repo_id = params.get("repo_id")
+
+        if not query:
+            return ExecutionResult(
+                OUTCOME_UNINFORMATIVE,
+                notes="RepoIntel action requires a query, symbol, or search target.",
+            )
+
+        evidence_ids = []
+        diagnostics = {}
+
+        # 1. Symbol-targeted analysis or caller graph
+        if symbol or "callers" in target.lower() or "blast" in target.lower():
+            sym_name = symbol or query
+            symbols = client.search_symbols(sym_name, limit=3)
+            callers = client.get_callers(sym_name)
+            callees = client.get_callees(sym_name) if hasattr(client, "get_callees") else []
+            impact = client.get_impact_radius(sym_name, max_depth=2) if hasattr(client, "get_impact_radius") else []
+            impact_cnt = len(impact) if isinstance(impact, list) else 0
+
+            content = (
+                f"REPOINTEL AST OBSERVATION for '{sym_name}':\n"
+                f"- Found {len(symbols)} matching AST symbol definition(s).\n"
+                f"- Callers ({len(callers)}): {', '.join(c.get('caller_name', '') for c in callers[:4]) or 'none'}\n"
+                f"- Callees ({len(callees)}): {', '.join(c.get('callee_name', '') for c in callees[:4]) or 'none'}\n"
+                f"- Blast radius affected count: {impact_cnt}\n"
+            )
+            if symbols:
+                s0 = symbols[0]
+                content += f"\nPrimary Definition: `{s0.qualified_name}` in `{s0.file_path}`\nSource Code:\n{s0.source_code[:450]}"
+
+            source = await _create_source(
+                action.case_id,
+                "CODE",
+                source_uri=f"repointel://symbol/{sym_name}",
+                metadata={"action_id": action.action_id, "symbol": sym_name},
+            )
+            ev = await ingest_evidence(
+                case_id=action.case_id,
+                content=content,
+                source_id=source.source_id,
+                evidence_type="CODE",
+                metadata={"origin": "repo_observation", "action_id": action.action_id, "symbol": sym_name},
+            )
+            evidence_ids.append(ev.evidence_id)
+            diagnostics = {"symbol": sym_name, "callers_count": len(callers), "symbols_count": len(symbols)}
+
+        # 2. General code search
+        else:
+            hits = client.search_code(query, repo_id=repo_id, limit=5)
+            if not hits:
+                return ExecutionResult(
+                    OUTCOME_UNINFORMATIVE,
+                    notes=f"RepoIntel code search returned no hits for '{query[:60]}'",
+                    diagnostics={"query": query},
+                )
+            content = f"REPOINTEL CODE SEARCH OBSERVATION for query '{query}':\n\n"
+            for i, h in enumerate(hits, 1):
+                content += f"[{i}] {h.get('symbol')} ({h.get('entity_type')}) in {h.get('file_path')}:\n"
+                content += f"{h.get('snippet', '')[:250]}\n\n"
+
+            source = await _create_source(
+                action.case_id,
+                "CODE",
+                source_uri=f"repointel://search/{query[:30]}",
+                metadata={"action_id": action.action_id, "query": query},
+            )
+            ev = await ingest_evidence(
+                case_id=action.case_id,
+                content=content,
+                source_id=source.source_id,
+                evidence_type="CODE",
+                metadata={"origin": "repo_observation", "action_id": action.action_id, "hits_count": len(hits)},
+            )
+            evidence_ids.append(ev.evidence_id)
+            diagnostics = {"query": query, "hits_count": len(hits)}
+
+        return ExecutionResult(
+            OUTCOME_EVIDENCE_PRODUCED,
+            evidence_ids=evidence_ids,
+            notes=f"RepoIntel produced {len(evidence_ids)} code evidence item(s) with origin='repo_observation'",
+            diagnostics=diagnostics,
+        )
+
+
 # Module-level default executor (improvisation G: closed-world by default).
 _DEFAULT_EXECUTOR: ActionExecutor = NullExecutor()
 
@@ -1382,20 +1492,32 @@ def default_executor_for(action: Action) -> ActionExecutor:
     """Return the real executor for the action's type (P1 completion).
 
     Every action type now has a contract and an executor:
-        SEARCH                 -> WebSearchExecutor (URL ingestion)
-        INSPECT                -> FileInspectExecutor (file ingestion)
+        SEARCH                 -> RepoIntelExecutor (code search) or WebSearchExecutor (URL)
+        INSPECT                -> RepoIntelExecutor (symbols/repos) or FileInspectExecutor (file path)
+        REPO_INTEL             -> RepoIntelExecutor (AST symbols, callers, blast radius)
         ASK_HUMAN              -> HumanAskExecutor (records the gap)
         RETRIEVE               -> RetrieveExecutor (hybrid evidence search)
         COMPARE                -> CompareExecutor (structured comparison)
-        FIND_COUNTEREVIDENCE   -> FindCounterevidenceExecutor (contrastive
-                                  search + CONTRADICTS linking)
+        FIND_COUNTEREVIDENCE   -> FindCounterevidenceExecutor (contrastive search)
         RUN_TEST               -> RunTestExecutor (safe deterministic tests)
         WAIT                   -> WaitExecutor (records the wake condition)
         ABSTAIN                -> AbstainExecutor (records the rationale)
-        REVISIT_HYPOTHESIS     -> RevisitHypothesisExecutor (recompute +
-                                  induction when starved)
+        REVISIT_HYPOTHESIS     -> RevisitHypothesisExecutor (recompute + induction)
     NullExecutor remains injectable for closed-world benchmark runs.
     """
+    params = getattr(action, "result_payload", {}) or {}
+    target = (action.target or "").strip()
+
+    # Dynamic routing to RepoIntel when action relates to code investigation
+    if (
+        action.action_type in ("REPO_INTEL", "CODE_SEARCH", "IMPACT_ANALYSIS", "FIND_SYMBOL")
+        or params.get("target") in ("code", "repo", "ast", "symbol")
+        or "repo_id" in params
+        or "symbol" in params
+        or (action.action_type == "SEARCH" and target and not (target.startswith("http://") or target.startswith("https://")))
+    ):
+        return RepoIntelExecutor()
+
     mapping = {
         "SEARCH": WebSearchExecutor,
         "INSPECT": FileInspectExecutor,

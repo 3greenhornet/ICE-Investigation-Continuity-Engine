@@ -5,7 +5,7 @@ Thoughts are active, in‑progress cognition, not stored knowledge.
 
 from pydantic import BaseModel, Field
 from typing import Optional
-from datetime import datetime
+from datetime import datetime, timezone
 
 
 class Thought(BaseModel):
@@ -17,7 +17,7 @@ class Thought(BaseModel):
     interruption_status: bool = Field(default=False)
     execution_pressure: float = Field(default=0.6, ge=0.0, le=1.0)
     context_summary: Optional[str] = None
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
     def is_stale(self, current_turn: int, threshold: int = 50) -> bool:
         """Thought that hasn't been resumed for many turns may be abandoned."""

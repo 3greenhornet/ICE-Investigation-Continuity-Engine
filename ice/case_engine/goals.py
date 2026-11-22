@@ -367,9 +367,24 @@ async def connect_goals(
     pool = await get_pool()
     if pool is None:
         raise DatabaseUnavailableError("no DB pool")
-    edge_id = f"gedge_{uuid.uuid4().hex[:12]}"
 
     async with pool.acquire() as conn:
+        existing = await conn.fetchrow(
+            """
+            SELECT * FROM goal_edges
+            WHERE from_goal = $1 AND to_goal = $2 AND relation = $3
+            """,
+            from_goal, to_goal, relation,
+        )
+        if existing:
+            return {
+                "edge_id": existing["edge_id"], "case_id": existing["case_id"],
+                "from_goal": existing["from_goal"], "to_goal": existing["to_goal"],
+                "relation": existing["relation"], "provenance": existing["provenance"],
+                "note": existing["note"], "created_at": existing["created_at"],
+            }
+
+        edge_id = f"gedge_{uuid.uuid4().hex[:12]}"
         async with conn.transaction():
             await conn.execute(
                 """
