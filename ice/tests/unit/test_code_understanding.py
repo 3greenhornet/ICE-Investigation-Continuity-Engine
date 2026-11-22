@@ -283,3 +283,34 @@ class TestPersistenceAndReload:
         assert note.note_id in engine2._notes
         assert plan.plan_id in engine2._plans
 
+    def test_learnharness_external_import(self, tmp_path):
+        import json
+        engine = CodeUnderstandingEngine()
+
+        # 1. Non-existent directory
+        res_empty = engine.read_external_learnharness(data_dir=str(tmp_path / "non_existent"))
+        assert res_empty["available"] is False
+        assert res_empty["sessions_imported"] == 0
+
+        # 2. Mock valid LearnHarness chats directory
+        chats_dir = tmp_path / "chats"
+        chats_dir.mkdir(parents=True)
+        sample_chat = {
+            "id": "chat_compiler_1",
+            "title": "Compiler Design Lexer Invariants",
+            "createdAt": "2026-11-05T20:00:00Z",
+            "messages": [
+                {"role": "user", "content": "How does the lexer handle whitespace invariants?"},
+                {"role": "assistant", "content": "Rule: All tokens must advance stream position monotonically."},
+            ],
+            "turns": [1, 2],
+        }
+        with open(chats_dir / "chat_compiler_1.json", "w", encoding="utf-8") as f:
+            json.dump(sample_chat, f)
+
+        res = engine.read_external_learnharness(data_dir=str(tmp_path))
+        assert res["available"] is True
+        assert res["sessions_imported"] == 1
+        assert res["sessions"][0]["title"] == "Compiler Design Lexer Invariants"
+        assert len(engine._notes) >= 1
+

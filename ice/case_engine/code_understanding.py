@@ -38,6 +38,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import re
 import uuid
 from datetime import datetime, timezone
@@ -1001,6 +1002,136 @@ class CodeUnderstandingEngine:
         self._knowledge[case_id] = result
         self._save_to_disk()
         return result
+
+    # -----------------------------------------------------------------
+    # 11. External LearnHarness Reader & Knowledge Correlator
+    # -----------------------------------------------------------------
+
+    def read_external_learnharness(
+        self,
+        data_dir: Optional[str] = None,
+        max_sessions: int = 5,
+    ) -> Dict[str, Any]:
+        """Read and import existing LearnHarness learning sessions and graph data from local disk.
+
+        Safe, read-only inspection conforming to the LearnHarness data format.
+        Correlates imported insights with current codebase symbols.
+        """
+        target_dir = None
+        if data_dir is not None:
+            if Path(data_dir).exists():
+                target_dir = Path(data_dir)
+        else:
+            appdata = os.environ.get("APPDATA", "")
+            if appdata:
+                default_path = Path(appdata) / "LearnHarness" / "data"
+                if default_path.exists():
+                    target_dir = default_path
+
+        if not target_dir or not target_dir.exists():
+            return {
+                "available": False,
+                "message": "No external LearnHarness data directory found.",
+                "sessions_imported": 0,
+                "imported_notes": [],
+            }
+
+        chats_dir = target_dir / "chats"
+        imported_sessions = []
+        invariants_found = []
+
+        if chats_dir.exists():
+            for chat_file in sorted(chats_dir.glob("*.json"))[:max_sessions]:
+                try:
+                    with open(chat_file, "r", encoding="utf-8") as f:
+                        chat_data = json.load(f)
+                        title = chat_data.get("title", chat_file.stem)
+                        cid = chat_data.get("id", chat_file.stem)
+                        messages = chat_data.get("messages", [])
+
+                        user_texts = []
+                        assistant_texts = []
+                        for m in messages:
+                            role = m.get("role")
+                            content = m.get("content")
+                            if isinstance(content, str):
+                                if role == "user":
+                                    user_texts.append(content)
+                                elif role == "assistant":
+                                    assistant_texts.append(content)
+                            elif isinstance(content, list):
+                                for block in content:
+                                    if isinstance(block, dict) and block.get("type") == "text":
+                                        txt = block.get("text", "")
+                                        if role == "user":
+                                            user_texts.append(txt)
+                                        elif role == "assistant":
+                                            assistant_texts.append(txt)
+
+                        full_notes = f"# LearnHarness Session: {title}\n\n"
+                        full_notes += "## User Inquiries:\n" + "\n".join(f"- {t}" for t in user_texts[:3]) + "\n\n"
+                        full_notes += "## Key Architecture Lessons:\n" + "\n".join(f"- {t[:250]}" for t in assistant_texts[:3])
+
+                        note = self.ingest_developer_notes(full_notes, title=f"LearnHarness: {title[:40]}")
+                        invariants_found.extend(note.invariants_extracted)
+                        imported_sessions.append({
+                            "session_id": cid,
+                            "title": title,
+                            "created_at": chat_data.get("createdAt"),
+                            "turns_count": len(chat_data.get("turns", [])),
+                            "note_id": note.note_id,
+                        })
+                except Exception as exc:
+                    logger.warning(f"Error reading LearnHarness chat {chat_file}: {exc}")
+
+        graph_nodes_path = target_dir / "graph" / "nodes.jsonl"
+        graph_chains_path = target_dir / "graph" / "chains.jsonl"
+        imported_props = 0
+        imported_chains = 0
+
+        if graph_nodes_path.exists():
+            try:
+                with open(graph_nodes_path, "r", encoding="utf-8") as f:
+                    for line in f:
+                        line = line.strip()
+                        if line:
+                            val = json.loads(line)
+                            p_id = val.get("id")
+                            if p_id:
+                                self._knowledge[p_id] = val
+                                imported_props += 1
+            except Exception as e:
+                logger.warning(f"Error reading LearnHarness graph nodes: {e}")
+
+        if graph_chains_path.exists():
+            try:
+                with open(graph_chains_path, "r", encoding="utf-8") as f:
+                    for line in f:
+                        line = line.strip()
+                        if line:
+                            val = json.loads(line)
+                            c_id = val.get("id")
+                            if c_id:
+                                self._knowledge[c_id] = val
+                                imported_chains += 1
+            except Exception as e:
+                logger.warning(f"Error reading LearnHarness graph chains: {e}")
+
+        self._save_to_disk()
+
+        return {
+            "available": True,
+            "data_directory": str(target_dir),
+            "sessions_imported": len(imported_sessions),
+            "sessions": imported_sessions,
+            "propositions_imported": imported_props,
+            "chains_imported": imported_chains,
+            "invariants_discovered": list(set(invariants_found))[:5],
+            "recommendation": (
+                "Successfully synchronized LearnHarness sessions into ICE. "
+                "These insights are now available across Socratic walkthroughs and ADR verification."
+            ),
+        }
 
     # Backward-compatibility aliases for legacy callers
     probe_learner_edge = probe_developer_understanding

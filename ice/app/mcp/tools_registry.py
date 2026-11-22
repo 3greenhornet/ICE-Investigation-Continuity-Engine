@@ -951,6 +951,17 @@ async def ice_guide_extract_knowledge(
     return engine.extract_codebase_knowledge(case_id, goal_statements)
 
 
+@_safe
+async def ice_guide_import_learnharness(
+    data_dir: Optional[str] = None,
+    max_sessions: int = 5,
+) -> Dict[str, Any]:
+    """Import and synchronize existing LearnHarness sessions and knowledge graph from local disk."""
+    from case_engine.code_understanding import CodeUnderstandingEngine
+    engine = CodeUnderstandingEngine()
+    return engine.read_external_learnharness(data_dir=data_dir, max_sessions=max_sessions)
+
+
 # Backward-compatibility aliases
 ice_tutor_probe = ice_guide_probe
 ice_tutor_plan_map = ice_guide_plan
@@ -1067,6 +1078,7 @@ TOOLS: Dict[str, Dict[str, Any]] = {
     "ice_guide_practice": {"fn": ice_guide_practice, "desc": "Pose active coding challenge (Recall, Discrimination, Composition) with pre-computed hint ladder"},
     "ice_guide_hint": {"fn": ice_guide_hint, "desc": "Get progressive hint from 6-rung ladder (R0 Attention to R5 Solution)"},
     "ice_guide_extract_knowledge": {"fn": ice_guide_extract_knowledge, "desc": "Extract durable propositions and reasoning chains into persistent knowledge graph"},
+    "ice_guide_import_learnharness": {"fn": ice_guide_import_learnharness, "desc": "Import and synchronize existing LearnHarness sessions and knowledge graph"},
 
     # Backwards-compatibility aliases
     "ice_tutor_probe": {"fn": ice_tutor_probe, "desc": "Alias: Bracket developer understanding edge"},
