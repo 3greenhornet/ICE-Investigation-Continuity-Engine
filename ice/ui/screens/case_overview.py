@@ -128,7 +128,39 @@ def render():
     na = summary.get("next_action")
     if na:
         st.info(f"**{na['action_type']}**: {na.get('target') or 'unspecified'}")
-        st.caption(f"Priority: {na['priority']:.2f} | ID: {na['action_id']}")
+        st.caption(
+            f"Priority: {na['priority']:.2f} | ID: {na['action_id']} | "
+            f"Class: {na.get('approval_class', 'READ_ONLY')} | "
+            f"Approval Required: {na.get('approval_required', True)} | Status: {na.get('status', 'proposed')}"
+        )
+        col_act1, col_act2, col_act3 = st.columns(3)
+        act_id = na["action_id"]
+        status = na.get("status", "proposed")
+
+        if status == "proposed":
+            if col_act1.button("✅ Approve Action", key=f"app_{act_id}"):
+                try:
+                    asyncio.run(api_client.approve_action(act_id))
+                    st.success(f"Action {act_id} approved!")
+                    st.rerun()
+                except Exception as exc:
+                    st.error(f"Approval failed: {exc}")
+            if col_act2.button("❌ Reject Action", key=f"rej_{act_id}"):
+                try:
+                    asyncio.run(api_client.reject_action(act_id))
+                    st.warning(f"Action {act_id} rejected.")
+                    st.rerun()
+                except Exception as exc:
+                    st.error(f"Rejection failed: {exc}")
+        elif status == "approved":
+            if col_act1.button("⚡ Execute Action", key=f"exec_{act_id}"):
+                try:
+                    with st.spinner("Executing action via executor..."):
+                        res = asyncio.run(api_client.execute_action(act_id))
+                    st.success(f"Executed: {res.get('status', 'completed')}")
+                    st.rerun()
+                except Exception as exc:
+                    st.error(f"Execution failed: {exc}")
     else:
         st.info("No pending actions.")
 

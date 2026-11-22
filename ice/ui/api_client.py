@@ -94,6 +94,30 @@ async def list_actions(case_id: str):
         return r.json()
 
 
+async def approve_action(action_id: str):
+    """Approve a proposed action (spec Part 4 §13.6)."""
+    async with _client() as client:
+        r = await client.post(f"/actions/{action_id}/approve")
+        r.raise_for_status()
+        return r.json()
+
+
+async def execute_action(action_id: str):
+    """Execute an approved action through its registered executor (spec Part 4 §13.6)."""
+    async with _client() as client:
+        r = await client.post(f"/actions/{action_id}/execute")
+        r.raise_for_status()
+        return r.json()
+
+
+async def reject_action(action_id: str, reason: str = "Rejected by user in UI"):
+    """Reject a proposed action with reason (spec Part 4 §13.6)."""
+    async with _client() as client:
+        r = await client.post(f"/actions/{action_id}/reject", json={"reason": reason})
+        r.raise_for_status()
+        return r.json()
+
+
 async def run_investigation(case_id: str):
     async with _client() as client:
         r = await client.post(f"/cases/{case_id}/investigate", json={})
