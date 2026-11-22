@@ -74,3 +74,45 @@ async def test_repointel_offline_architecture_call():
     structured = resp["result"]["structured"]
     assert "architecture" in structured
     assert structured["architecture"]["file_count"] > 0
+
+
+@pytest.mark.asyncio
+async def test_repointel_impact_recursive_cte():
+    req = {
+        "jsonrpc": "2.0",
+        "id": 4,
+        "method": "tools/call",
+        "params": {"name": "repointel_get_impact", "arguments": {"symbol": "get_timestamp", "limit": 5}},
+    }
+    resp = await dispatch_request(req)
+    assert resp is not None
+    assert "result" in resp
+    impact = resp["result"]["structured"]["impacted_callers"]
+    assert len(impact) > 0
+    assert "num_call_paths" in impact[0]
+
+
+@pytest.mark.asyncio
+async def test_repointel_list_gaps_and_health():
+    req1 = {
+        "jsonrpc": "2.0",
+        "id": 5,
+        "method": "tools/call",
+        "params": {"name": "repointel_list_gaps", "arguments": {"limit": 10}},
+    }
+    resp1 = await dispatch_request(req1)
+    assert resp1 is not None
+    gaps = resp1["result"]["structured"]
+    assert gaps["total_gaps"] > 0
+
+    req2 = {
+        "jsonrpc": "2.0",
+        "id": 6,
+        "method": "tools/call",
+        "params": {"name": "repointel_get_health_score", "arguments": {}},
+    }
+    resp2 = await dispatch_request(req2)
+    assert resp2 is not None
+    health = resp2["result"]["structured"]
+    assert health["health_score"] >= 0
+    assert health["grade"] in ("A", "B", "C", "D")

@@ -634,6 +634,40 @@ async def repointel_get_callers(symbol: str) -> Dict[str, Any]:
 
 
 @_safe
+async def repointel_get_callees(symbol: str, limit: int = 20) -> Dict[str, Any]:
+    """Look up functions or classes called downstream by a symbol."""
+    from case_engine.repointel_client import RepoIntelClient
+    client = RepoIntelClient()
+    callees = client.get_callees(symbol, limit=limit)
+    return {"symbol": symbol, "callees": callees, "callee_count": len(callees)}
+
+
+@_safe
+async def repointel_get_impact(symbol: str, max_depth: int = 5, limit: int = 20) -> Dict[str, Any]:
+    """Calculate recursive blast radius and upstream caller tree using SQLite Recursive CTE."""
+    from case_engine.repointel_client import RepoIntelClient
+    client = RepoIntelClient()
+    impact = client.get_impact_radius(symbol, max_depth=max_depth, limit=limit)
+    return {"symbol": symbol, "impacted_callers": impact, "impact_count": len(impact)}
+
+
+@_safe
+async def repointel_list_gaps(repo_id: Optional[str] = None, gap_type: str = "all", limit: int = 50) -> Dict[str, Any]:
+    """List codebase gaps: test_gap, doc_gap, incomplete_feature, and error_handling_gap."""
+    from case_engine.repointel_client import RepoIntelClient
+    client = RepoIntelClient()
+    return client.list_gaps(repo_id=repo_id, gap_type=gap_type, limit=limit)
+
+
+@_safe
+async def repointel_get_health_score(repo_id: Optional[str] = None) -> Dict[str, Any]:
+    """Calculate aggregate codebase health score (0-100) and letter grade (A-D)."""
+    from case_engine.repointel_client import RepoIntelClient
+    client = RepoIntelClient()
+    return client.get_health_score(repo_id=repo_id)
+
+
+@_safe
 async def repointel_get_architecture(repo_id: Optional[str] = None) -> Dict[str, Any]:
     """Get high-level repository architecture: core modules, component counts, and hubs."""
     from case_engine.repointel_client import RepoIntelClient
@@ -756,9 +790,17 @@ TOOLS: Dict[str, Dict[str, Any]] = {
     # 11. RepoIntel Offline AST Grounding
     "repointel_search_code": {"fn": repointel_search_code, "desc": "Search codebase AST symbols and source text"},
     "repointel_get_callers": {"fn": repointel_get_callers, "desc": "Find function/class callers and downstream dependencies"},
+    "repointel_get_callees": {"fn": repointel_get_callees, "desc": "Find functions/classes called downstream by a symbol"},
+    "repointel_get_impact": {"fn": repointel_get_impact, "desc": "Calculate recursive blast radius and upstream caller tree using SQLite Recursive CTE"},
     "repointel_get_architecture": {"fn": repointel_get_architecture, "desc": "Get repository architecture and core components"},
     "repointel_get_findings": {"fn": repointel_get_findings, "desc": "Get static code analysis findings and smells"},
     "repointel_search_symbols": {"fn": repointel_search_symbols, "desc": "Search AST symbols matching a pattern"},
+    "repointel_list_gaps": {"fn": repointel_list_gaps, "desc": "List codebase gaps (test, doc, stub, error handling)"},
+    "repointel_get_health_score": {"fn": repointel_get_health_score, "desc": "Calculate codebase health score (0-100) and grade (A-D)"},
+    # Backwards compatibility aliases
+    "ice_repointel_search_code": {"fn": repointel_search_code, "desc": "Alias: search codebase AST symbols and source text"},
+    "ice_repointel_callers": {"fn": repointel_get_callers, "desc": "Alias: find function/class callers and downstream dependencies"},
+    "ice_repointel_architecture": {"fn": repointel_get_architecture, "desc": "Alias: get repository architecture and core components"},
 
     # 12. Bridge Tools
     "invoke_repointel_tool": {"fn": invoke_repointel_tool, "desc": "Invoke any RepoIntel tool dynamically by name"},

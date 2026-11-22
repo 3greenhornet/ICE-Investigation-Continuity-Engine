@@ -97,7 +97,22 @@ class RepoIntelBridge:
     def _sqlite_fallback(self, tool_name: str, arguments: Dict[str, Any]) -> Dict[str, Any]:
         """Query direct SQLite knowledge base (repointel.db) when HTTP server is offline."""
         try:
-            if tool_name in ("get_impact", "find_symbol_references", "get_callers"):
+            if tool_name in ("get_impact", "find_symbol_references"):
+                symbol = arguments.get("symbol", "")
+                depth = arguments.get("max_depth", 5)
+                limit = arguments.get("limit", 20)
+                impact = self._sqlite_client.get_impact_radius(symbol, max_depth=depth, limit=limit)
+                arch = self._sqlite_client.get_architecture(repo_id=arguments.get("repo_id"))
+                hub_deg = next((h[1] for h in arch.get("top_hubs", []) if h.get("name") == symbol), 0)
+                return {
+                    "symbol": symbol,
+                    "impacted_callers": impact,
+                    "caller_count": len(impact),
+                    "hub_degree": hub_deg,
+                    "source": "repointel.db recursive cte",
+                }
+
+            if tool_name == "get_callers":
                 symbol = arguments.get("symbol", "")
                 callers = self._sqlite_client.get_callers(symbol)
                 return {
@@ -107,6 +122,26 @@ class RepoIntelBridge:
                     "source": "repointel.db direct sqlite",
                 }
 
+            if tool_name == "get_callees":
+                symbol = arguments.get("symbol", "")
+                callees = self._sqlite_client.get_callees(symbol)
+                return {
+                    "symbol": symbol,
+                    "callees": callees,
+                    "callee_count": len(callees),
+                    "source": "repointel.db direct sqlite",
+                }
+
+            if tool_name == "list_gaps":
+                return self._sqlite_client.list_gaps(
+                    repo_id=arguments.get("repo_id"),
+                    gap_type=arguments.get("gap_type", "all"),
+                    limit=arguments.get("limit", 50),
+                )
+
+            if tool_name == "get_health_score":
+                return self._sqlite_client.get_health_score(repo_id=arguments.get("repo_id"))
+
             if tool_name in ("query_repository", "search_code"):
                 query = arguments.get("question") or arguments.get("query", "")
                 limit = arguments.get("limit", 10)
@@ -114,9 +149,13 @@ class RepoIntelBridge:
                 return {"query": query, "hits": hits, "source": "repointel.db direct sqlite"}
 
             if tool_name in ("find_findings", "run_sast_scan"):
+                cat = arguments.get("category") or arguments.get("finding_type")
+                finding_type = None if cat == "all" else cat
                 findings = self._sqlite_client.get_findings(
                     repo_id=arguments.get("repo_id"),
-                    severity=arguments.get("severity")
+                    severity=arguments.get("severity"),
+                    finding_type=finding_type,
+                    limit=arguments.get("limit", 100),
                 )
                 return {"findings": findings, "count": len(findings), "source": "repointel.db direct sqlite"}
 

@@ -300,6 +300,7 @@ class RepoIntelClient:
 
     def get_findings(
         self,
+        repo_id: Optional[str] = None,
         severity: Optional[str] = None,
         finding_type: Optional[str] = None,
         file_path: Optional[str] = None,
@@ -313,6 +314,9 @@ class RepoIntelClient:
             cur = conn.cursor()
             query = "SELECT id, rule_id, severity, finding_type, message, file_path, line_start FROM findings WHERE 1=1"
             params: List[Any] = []
+            if repo_id:
+                query += " AND repo_id = ?"
+                params.append(repo_id)
             if severity:
                 query += " AND severity = ?"
                 params.append(severity)
@@ -340,6 +344,145 @@ class RepoIntelClient:
             ]
         finally:
             conn.close()
+
+    def get_callees(self, symbol_name: str, limit: int = 20) -> List[Dict[str, str]]:
+        """Find functions or classes called downstream by the given symbol."""
+        conn = self._get_connection()
+        if not conn:
+            return []
+        try:
+            cur = conn.cursor()
+            cur.execute(
+                """
+                SELECT tgt.qualified_name, tgt.file_path, tgt.entity_type
+                FROM edges e
+                JOIN nodes src ON e.source_id = src.id
+                JOIN nodes tgt ON e.target_id = tgt.id
+                WHERE (src.qualified_name = ? OR src.qualified_name LIKE ?)
+                  AND e.edge_type = 'CALLS'
+                LIMIT ?
+                """,
+                (symbol_name, f"%{symbol_name}%", limit),
+            )
+            return [
+                {"callee_name": r[0], "file_path": r[1], "entity_type": r[2]}
+                for r in cur.fetchall()
+            ]
+        finally:
+            conn.close()
+
+    def get_impact_radius(
+        self, symbol_name: str, max_depth: int = 5, limit: int = 20
+    ) -> List[Dict[str, Any]]:
+        """Upstream Blast Radius: traces recursive callers using SQLite WITH RECURSIVE CTE.
+
+        Uses comma-padded path tracking for cycle prevention matching RepoIntel's graph store.
+        """
+        conn = self._get_connection()
+        if not conn:
+            return []
+        try:
+            cur = conn.cursor()
+            query = """
+            WITH RECURSIVE blast_radius(node_id, depth, path) AS (
+                SELECT
+                    e.source_id AS node_id,
+                    1 AS depth,
+                    ',' || n.id || ',' || e.source_id || ',' AS path
+                FROM edges e
+                JOIN nodes n ON e.target_id = n.id
+                WHERE (n.id = ? OR n.qualified_name = ?)
+                  AND e.edge_type = 'CALLS'
+
+                UNION ALL
+
+                SELECT
+                    e.source_id AS node_id,
+                    br.depth + 1 AS depth,
+                    br.path || e.source_id || ',' AS path
+                FROM edges e
+                JOIN blast_radius br ON e.target_id = br.node_id
+                WHERE e.edge_type = 'CALLS'
+                  AND instr(br.path, ',' || e.source_id || ',') = 0
+                  AND br.depth < ?
+            )
+            SELECT
+                n.id AS node_id,
+                n.qualified_name AS name,
+                n.entity_type AS label,
+                n.file_path,
+                MIN(br.depth) AS path_length,
+                COUNT(DISTINCT br.path) AS num_call_paths
+            FROM blast_radius br
+            JOIN nodes n ON br.node_id = n.id
+            GROUP BY n.id, n.qualified_name, n.entity_type, n.file_path
+            ORDER BY path_length ASC, num_call_paths DESC
+            LIMIT ?
+            """
+            cur.execute(query, (symbol_name, symbol_name, max_depth, limit))
+            return [
+                {
+                    "node_id": r[0],
+                    "name": r[1],
+                    "label": r[2],
+                    "file_path": r[3],
+                    "path_length": r[4],
+                    "num_call_paths": r[5],
+                }
+                for r in cur.fetchall()
+            ]
+        finally:
+            conn.close()
+
+    def list_gaps(
+        self, repo_id: Optional[str] = None, gap_type: str = "all", limit: int = 50
+    ) -> Dict[str, Any]:
+        """List codebase gaps: test_gap, doc_gap, incomplete_feature, and error_handling_gap."""
+        types = (
+            ["test_gap", "doc_gap", "incomplete_feature", "error_handling_gap"]
+            if gap_type == "all"
+            else [gap_type]
+        )
+        all_gaps: List[Dict[str, Any]] = []
+        for gt in types:
+            all_gaps.extend(self.get_findings(repo_id=repo_id, finding_type=gt, limit=limit))
+
+        by_type: Dict[str, int] = {}
+        for g in all_gaps:
+            ft = g.get("finding_type") or "unknown"
+            by_type[ft] = by_type.get(ft, 0) + 1
+
+        return {
+            "repo_id": repo_id or "all",
+            "gap_type": gap_type,
+            "total_gaps": len(all_gaps),
+            "by_type": by_type,
+            "gaps": all_gaps[:limit],
+        }
+
+    def get_health_score(self, repo_id: Optional[str] = None) -> Dict[str, Any]:
+        """Calculate the aggregate codebase health score (0-100) and letter grade (A-D)."""
+        findings = self.get_findings(repo_id=repo_id, limit=10000)
+        by_sev: Dict[str, int] = {}
+        for f in findings:
+            s = f.get("severity") or "info"
+            by_sev[s] = by_sev.get(s, 0) + 1
+
+        penalty = (
+            by_sev.get("blocker", 0) * 10
+            + by_sev.get("critical", 0) * 5
+            + by_sev.get("major", 0) * 1
+            + by_sev.get("minor", 0) * 0.1
+        )
+        score = max(0.0, round(100.0 - penalty, 1))
+        grade = "A" if score >= 90 else "B" if score >= 75 else "C" if score >= 60 else "D"
+        return {
+            "repo_id": repo_id or "all",
+            "health_score": score,
+            "grade": grade,
+            "by_severity": by_sev,
+            "total_findings": len(findings),
+        }
 
     # -----------------------------------------------------------------------
     # 4. Goal Maturity Verification (The Core Bridge)

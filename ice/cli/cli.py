@@ -599,6 +599,23 @@ def build_parser() -> argparse.ArgumentParser:
     p = rp_sub.add_parser("callers")
     p.add_argument("symbol")
 
+    p = rp_sub.add_parser("callees")
+    p.add_argument("symbol")
+    p.add_argument("--limit", type=int, default=20)
+
+    p = rp_sub.add_parser("impact")
+    p.add_argument("symbol")
+    p.add_argument("--depth", type=int, default=5)
+    p.add_argument("--limit", type=int, default=20)
+
+    p = rp_sub.add_parser("gaps")
+    p.add_argument("--repo-id", default=None)
+    p.add_argument("--type", default="all")
+    p.add_argument("--limit", type=int, default=50)
+
+    p = rp_sub.add_parser("health")
+    p.add_argument("--repo-id", default=None)
+
     p = rp_sub.add_parser("code")
     p.add_argument("query")
     p.add_argument("--limit", type=int, default=5)
@@ -1450,6 +1467,14 @@ async def _dispatch_repointel(args, parser) -> int:
         result = [s.__dict__ for s in client.search_symbols(args.query, limit=args.limit)]
     elif args.cmd == "callers":
         result = client.get_callers(args.symbol)
+    elif args.cmd == "callees":
+        result = client.get_callees(args.symbol, limit=args.limit)
+    elif args.cmd == "impact":
+        result = client.get_impact_radius(args.symbol, max_depth=args.depth, limit=args.limit)
+    elif args.cmd == "gaps":
+        result = client.list_gaps(repo_id=args.repo_id, gap_type=args.type, limit=args.limit)
+    elif args.cmd == "health":
+        result = client.get_health_score(repo_id=args.repo_id)
     elif args.cmd == "code":
         result = client.search_code(args.query, limit=args.limit)
     elif args.cmd == "maturity":

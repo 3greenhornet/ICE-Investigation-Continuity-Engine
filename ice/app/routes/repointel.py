@@ -66,6 +66,42 @@ async def repointel_search_code(q: str = Query(..., min_length=2), limit: int = 
     return client.search_code(query=q, limit=limit)
 
 
+@router.get("/impact/{symbol}")
+async def repointel_impact(
+    symbol: str,
+    max_depth: int = Query(5, ge=1, le=10),
+    limit: int = Query(20, ge=1, le=100),
+):
+    """Calculate recursive blast radius and upstream caller paths using SQLite Recursive CTE."""
+    client = RepoIntelClient()
+    return client.get_impact_radius(symbol_name=symbol, max_depth=max_depth, limit=limit)
+
+
+@router.get("/callees/{symbol}")
+async def repointel_callees(symbol: str, limit: int = Query(20, ge=1, le=100)):
+    """Find functions or classes called downstream by the given symbol."""
+    client = RepoIntelClient()
+    return client.get_callees(symbol_name=symbol, limit=limit)
+
+
+@router.get("/gaps")
+async def repointel_gaps(
+    repo_id: Optional[str] = Query(None),
+    gap_type: str = Query("all"),
+    limit: int = Query(50, ge=1, le=200),
+):
+    """List codebase gaps (test, doc, incomplete feature, error handling)."""
+    client = RepoIntelClient()
+    return client.list_gaps(repo_id=repo_id, gap_type=gap_type, limit=limit)
+
+
+@router.get("/health")
+async def repointel_health(repo_id: Optional[str] = Query(None)):
+    """Calculate aggregate codebase health score (0-100) and letter grade (A-D)."""
+    client = RepoIntelClient()
+    return client.get_health_score(repo_id=repo_id)
+
+
 @router.post("/code-maturity")
 async def repointel_code_maturity(req: CodeMaturityRequest):
     """Assess whether a goal's candidate code exists, is connected, or tested."""
