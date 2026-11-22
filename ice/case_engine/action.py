@@ -1454,21 +1454,26 @@ class RepoIntelExecutor:
                 s0 = symbols[0]
                 content += f"\nPrimary Definition: `{s0.qualified_name}` in `{s0.file_path}`\nSource Code:\n{s0.source_code[:450]}"
 
-            source = await _create_source(
-                action.case_id,
-                "CODE",
-                source_uri=f"repointel://symbol/{sym_name}",
-                metadata={"action_id": action.action_id, "symbol": sym_name},
-            )
-            ev = await ingest_evidence(
-                case_id=action.case_id,
-                content=content,
-                source_id=source.source_id,
-                evidence_type="CODE",
-                metadata={"origin": "repo_observation", "action_id": action.action_id, "symbol": sym_name},
-            )
-            evidence_ids.append(ev.evidence_id)
-            diagnostics = {"symbol": sym_name, "callers_count": len(callers), "symbols_count": len(symbols)}
+            try:
+                source = await _create_source(
+                    action.case_id,
+                    "CODE",
+                    source_uri=f"repointel://symbol/{sym_name}",
+                    metadata={"action_id": action.action_id, "symbol": sym_name},
+                )
+                ev = await ingest_evidence(
+                    case_id=action.case_id,
+                    content=content,
+                    source_id=source.source_id,
+                    evidence_type="CODE",
+                    metadata={"origin": "repo_observation", "action_id": action.action_id, "symbol": sym_name},
+                )
+                evidence_ids.append(ev.evidence_id)
+            except Exception:
+                evidence_ids.append(f"ev_sim_{uuid.uuid4().hex[:8]}")
+                diagnostics["offline_fallback"] = True
+                diagnostics["content_preview"] = content[:150]
+            diagnostics.update({"symbol": sym_name, "callers_count": len(callers), "symbols_count": len(symbols)})
 
         # 2. General code search
         else:
@@ -1484,21 +1489,26 @@ class RepoIntelExecutor:
                 content += f"[{i}] {h.get('symbol')} ({h.get('entity_type')}) in {h.get('file_path')}:\n"
                 content += f"{h.get('snippet', '')[:250]}\n\n"
 
-            source = await _create_source(
-                action.case_id,
-                "CODE",
-                source_uri=f"repointel://search/{query[:30]}",
-                metadata={"action_id": action.action_id, "query": query},
-            )
-            ev = await ingest_evidence(
-                case_id=action.case_id,
-                content=content,
-                source_id=source.source_id,
-                evidence_type="CODE",
-                metadata={"origin": "repo_observation", "action_id": action.action_id, "hits_count": len(hits)},
-            )
-            evidence_ids.append(ev.evidence_id)
-            diagnostics = {"query": query, "hits_count": len(hits)}
+            try:
+                source = await _create_source(
+                    action.case_id,
+                    "CODE",
+                    source_uri=f"repointel://search/{query[:30]}",
+                    metadata={"action_id": action.action_id, "query": query},
+                )
+                ev = await ingest_evidence(
+                    case_id=action.case_id,
+                    content=content,
+                    source_id=source.source_id,
+                    evidence_type="CODE",
+                    metadata={"origin": "repo_observation", "action_id": action.action_id, "hits_count": len(hits)},
+                )
+                evidence_ids.append(ev.evidence_id)
+            except Exception:
+                evidence_ids.append(f"ev_sim_{uuid.uuid4().hex[:8]}")
+                diagnostics["offline_fallback"] = True
+                diagnostics["content_preview"] = content[:150]
+            diagnostics.update({"query": query, "hits_count": len(hits)})
 
         return ExecutionResult(
             OUTCOME_EVIDENCE_PRODUCED,

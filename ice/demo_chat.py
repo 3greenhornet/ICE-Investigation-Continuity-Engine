@@ -185,7 +185,9 @@ def main():
 
 async def ice_part():
     try:
-        sys.path.insert(0, "/home/z/my-project/ice")
+        ice_root = os.environ.get("ICE_HOME") or os.path.dirname(os.path.abspath(__file__))
+        if ice_root not in sys.path:
+            sys.path.insert(0, ice_root)
         from engine.curiosity_graph import CuriosityGraph
     except Exception as exc:
         print(f"ice repo not importable ({exc}); skipping part 2")

@@ -5,10 +5,14 @@ import asyncio
 import os
 import sys
 
-sys.path.insert(0, "/home/z/my-project/scripts")
+from pathlib import Path
+_ROOT = Path(__file__).resolve().parent.parent
+_SCRIPTS = _ROOT / "scripts"
+if str(_SCRIPTS) not in sys.path:
+    sys.path.insert(0, str(_SCRIPTS))
 from ice_test import make_dsn  # noqa: E402
 
-REPO = "/home/z/my-project/ice"
+REPO = os.environ.get("ICE_HOME") or str(_ROOT / "ice")
 MIGRATIONS = [
     "012a_safety_check", "012_case_model", "013_evidence_graph",
     "014_case_events", "015_external_analysis_and_case_type",
