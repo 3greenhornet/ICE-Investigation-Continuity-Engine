@@ -700,6 +700,72 @@ async def repointel_search_symbols(
     return {"symbols": symbols, "count": len(symbols)}
 
 
+@_safe
+async def repointel_get_quality_predictions(
+    file_path: Optional[str] = None,
+    prediction_type: Optional[str] = None,
+    min_probability: float = 0.0,
+    limit: int = 25,
+) -> Dict[str, Any]:
+    """Get ML defect, technical debt, and smell predictions for codebase files."""
+    from case_engine.repointel_client import RepoIntelClient
+    client = RepoIntelClient()
+    predictions = client.get_quality_predictions(
+        file_path=file_path,
+        prediction_type=prediction_type,
+        min_probability=min_probability,
+        limit=limit,
+    )
+    return {"predictions": predictions, "count": len(predictions)}
+
+
+@_safe
+async def repointel_get_git_commits(
+    file_path: Optional[str] = None,
+    author: Optional[str] = None,
+    limit: int = 20,
+) -> Dict[str, Any]:
+    """Get recent Git commits, authors, commit messages, and diff sizes."""
+    from case_engine.repointel_client import RepoIntelClient
+    client = RepoIntelClient()
+    commits = client.get_git_commits(file_path=file_path, author=author, limit=limit)
+    return {"commits": commits, "count": len(commits)}
+
+
+@_safe
+async def repointel_get_git_hotspots(limit: int = 10) -> Dict[str, Any]:
+    """Get the most frequently changed codebase files (churn hotspots) across commit history."""
+    from case_engine.repointel_client import RepoIntelClient
+    client = RepoIntelClient()
+    hotspots = client.get_git_hotspots(limit=limit)
+    return {"hotspots": hotspots, "count": len(hotspots)}
+
+
+@_safe
+async def repointel_get_issues(
+    state: Optional[str] = None,
+    label: Optional[str] = None,
+    limit: int = 20,
+) -> Dict[str, Any]:
+    """Get GitHub issues associated with the repository."""
+    from case_engine.repointel_client import RepoIntelClient
+    client = RepoIntelClient()
+    issues = client.get_issues(state=state, label=label, limit=limit)
+    return {"issues": issues, "count": len(issues)}
+
+
+@_safe
+async def repointel_get_pull_requests(
+    state: Optional[str] = None,
+    limit: int = 20,
+) -> Dict[str, Any]:
+    """Get GitHub pull requests associated with the repository."""
+    from case_engine.repointel_client import RepoIntelClient
+    client = RepoIntelClient()
+    prs = client.get_pull_requests(state=state, limit=limit)
+    return {"pull_requests": prs, "count": len(prs)}
+
+
 # ======================================================================
 # 12. BRIDGING TOOLS (Inter-Agent Delegation)
 # ======================================================================
@@ -797,6 +863,11 @@ TOOLS: Dict[str, Dict[str, Any]] = {
     "repointel_search_symbols": {"fn": repointel_search_symbols, "desc": "Search AST symbols matching a pattern"},
     "repointel_list_gaps": {"fn": repointel_list_gaps, "desc": "List codebase gaps (test, doc, stub, error handling)"},
     "repointel_get_health_score": {"fn": repointel_get_health_score, "desc": "Calculate codebase health score (0-100) and grade (A-D)"},
+    "repointel_get_quality_predictions": {"fn": repointel_get_quality_predictions, "desc": "Get ML defect and technical debt predictions"},
+    "repointel_get_git_commits": {"fn": repointel_get_git_commits, "desc": "Get recent Git commits, authors, messages, and diffs"},
+    "repointel_get_git_hotspots": {"fn": repointel_get_git_hotspots, "desc": "Get codebase churn hotspots (most frequently modified files)"},
+    "repointel_get_issues": {"fn": repointel_get_issues, "desc": "Get repository GitHub issues and labels"},
+    "repointel_get_pull_requests": {"fn": repointel_get_pull_requests, "desc": "Get repository pull requests and reviewers"},
     # Backwards compatibility aliases
     "ice_repointel_search_code": {"fn": repointel_search_code, "desc": "Alias: search codebase AST symbols and source text"},
     "ice_repointel_callers": {"fn": repointel_get_callers, "desc": "Alias: find function/class callers and downstream dependencies"},

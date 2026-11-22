@@ -116,3 +116,39 @@ async def test_repointel_list_gaps_and_health():
     health = resp2["result"]["structured"]
     assert health["health_score"] >= 0
     assert health["grade"] in ("A", "B", "C", "D")
+
+
+@pytest.mark.asyncio
+async def test_repointel_context_tools():
+    # Predictions
+    req1 = {
+        "jsonrpc": "2.0",
+        "id": 7,
+        "method": "tools/call",
+        "params": {"name": "repointel_get_quality_predictions", "arguments": {"min_probability": 0.3, "limit": 5}},
+    }
+    resp1 = await dispatch_request(req1)
+    assert resp1 is not None
+    assert resp1["result"]["structured"]["count"] > 0
+
+    # Hotspots
+    req2 = {
+        "jsonrpc": "2.0",
+        "id": 8,
+        "method": "tools/call",
+        "params": {"name": "repointel_get_git_hotspots", "arguments": {"limit": 5}},
+    }
+    resp2 = await dispatch_request(req2)
+    assert resp2 is not None
+    assert resp2["result"]["structured"]["count"] > 0
+
+    # Issues
+    req3 = {
+        "jsonrpc": "2.0",
+        "id": 9,
+        "method": "tools/call",
+        "params": {"name": "repointel_get_issues", "arguments": {"limit": 5}},
+    }
+    resp3 = await dispatch_request(req3)
+    assert resp3 is not None
+    assert resp3["result"]["structured"]["count"] > 0

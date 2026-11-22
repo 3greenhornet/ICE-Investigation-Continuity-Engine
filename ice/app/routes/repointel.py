@@ -102,6 +102,62 @@ async def repointel_health(repo_id: Optional[str] = Query(None)):
     return client.get_health_score(repo_id=repo_id)
 
 
+@router.get("/predictions")
+async def repointel_predictions(
+    file_path: Optional[str] = Query(None),
+    prediction_type: Optional[str] = Query(None),
+    min_prob: float = Query(0.0, ge=0.0, le=1.0),
+    limit: int = Query(25, ge=1, le=100),
+):
+    """Get ML defect, technical debt, and smell predictions for files."""
+    client = RepoIntelClient()
+    return client.get_quality_predictions(
+        file_path=file_path,
+        prediction_type=prediction_type,
+        min_probability=min_prob,
+        limit=limit,
+    )
+
+
+@router.get("/commits")
+async def repointel_commits(
+    file_path: Optional[str] = Query(None),
+    author: Optional[str] = Query(None),
+    limit: int = Query(20, ge=1, le=100),
+):
+    """Get recent Git commits, authors, commit messages, and diff sizes."""
+    client = RepoIntelClient()
+    return client.get_git_commits(file_path=file_path, author=author, limit=limit)
+
+
+@router.get("/hotspots")
+async def repointel_hotspots(limit: int = Query(10, ge=1, le=50)):
+    """Get the most frequently changed codebase files (churn hotspots)."""
+    client = RepoIntelClient()
+    return client.get_git_hotspots(limit=limit)
+
+
+@router.get("/issues")
+async def repointel_issues(
+    state: Optional[str] = Query(None),
+    label: Optional[str] = Query(None),
+    limit: int = Query(20, ge=1, le=100),
+):
+    """Get GitHub issues associated with the repository."""
+    client = RepoIntelClient()
+    return client.get_issues(state=state, label=label, limit=limit)
+
+
+@router.get("/pull-requests")
+async def repointel_prs(
+    state: Optional[str] = Query(None),
+    limit: int = Query(20, ge=1, le=100),
+):
+    """Get GitHub pull requests associated with the repository."""
+    client = RepoIntelClient()
+    return client.get_pull_requests(state=state, limit=limit)
+
+
 @router.post("/code-maturity")
 async def repointel_code_maturity(req: CodeMaturityRequest):
     """Assess whether a goal's candidate code exists, is connected, or tested."""

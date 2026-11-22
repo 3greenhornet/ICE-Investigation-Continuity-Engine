@@ -170,6 +170,52 @@ class RepoIntelBridge:
                 )
                 return {"symbols": syms, "count": len(syms), "source": "repointel.db direct sqlite"}
 
+            if tool_name in ("get_quality_predictions", "repointel_get_quality_predictions"):
+                return {
+                    "predictions": self._sqlite_client.get_quality_predictions(
+                        file_path=arguments.get("file_path"),
+                        prediction_type=arguments.get("prediction_type"),
+                        min_probability=arguments.get("min_probability", 0.0),
+                        limit=arguments.get("limit", 25),
+                    ),
+                    "source": "repointel.db direct sqlite",
+                }
+
+            if tool_name in ("get_git_commits", "repointel_get_git_commits"):
+                return {
+                    "commits": self._sqlite_client.get_git_commits(
+                        file_path=arguments.get("file_path"),
+                        author=arguments.get("author"),
+                        limit=arguments.get("limit", 20),
+                    ),
+                    "source": "repointel.db direct sqlite",
+                }
+
+            if tool_name in ("get_git_hotspots", "repointel_get_git_hotspots"):
+                return {
+                    "hotspots": self._sqlite_client.get_git_hotspots(limit=arguments.get("limit", 10)),
+                    "source": "repointel.db direct sqlite",
+                }
+
+            if tool_name in ("get_issues", "repointel_get_issues"):
+                return {
+                    "issues": self._sqlite_client.get_issues(
+                        state=arguments.get("state"),
+                        label=arguments.get("label"),
+                        limit=arguments.get("limit", 20),
+                    ),
+                    "source": "repointel.db direct sqlite",
+                }
+
+            if tool_name in ("get_pull_requests", "repointel_get_pull_requests"):
+                return {
+                    "pull_requests": self._sqlite_client.get_pull_requests(
+                        state=arguments.get("state"),
+                        limit=arguments.get("limit", 20),
+                    ),
+                    "source": "repointel.db direct sqlite",
+                }
+
             if tool_name == "check_goal_code_maturity":
                 statement = arguments.get("statement") or arguments.get("goal_text", "")
                 gid = arguments.get("goal_id", "goal_check")

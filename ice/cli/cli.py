@@ -616,6 +616,29 @@ def build_parser() -> argparse.ArgumentParser:
     p = rp_sub.add_parser("health")
     p.add_argument("--repo-id", default=None)
 
+    p = rp_sub.add_parser("predictions")
+    p.add_argument("--file", default=None)
+    p.add_argument("--type", default=None)
+    p.add_argument("--min-prob", type=float, default=0.0)
+    p.add_argument("--limit", type=int, default=25)
+
+    p = rp_sub.add_parser("commits")
+    p.add_argument("--file", default=None)
+    p.add_argument("--author", default=None)
+    p.add_argument("--limit", type=int, default=20)
+
+    p = rp_sub.add_parser("hotspots")
+    p.add_argument("--limit", type=int, default=10)
+
+    p = rp_sub.add_parser("issues")
+    p.add_argument("--state", default=None)
+    p.add_argument("--label", default=None)
+    p.add_argument("--limit", type=int, default=20)
+
+    p = rp_sub.add_parser("prs")
+    p.add_argument("--state", default=None)
+    p.add_argument("--limit", type=int, default=20)
+
     p = rp_sub.add_parser("code")
     p.add_argument("query")
     p.add_argument("--limit", type=int, default=5)
@@ -1475,6 +1498,21 @@ async def _dispatch_repointel(args, parser) -> int:
         result = client.list_gaps(repo_id=args.repo_id, gap_type=args.type, limit=args.limit)
     elif args.cmd == "health":
         result = client.get_health_score(repo_id=args.repo_id)
+    elif args.cmd == "predictions":
+        result = client.get_quality_predictions(
+            file_path=args.file,
+            prediction_type=args.type,
+            min_probability=args.min_prob,
+            limit=args.limit,
+        )
+    elif args.cmd == "commits":
+        result = client.get_git_commits(file_path=args.file, author=args.author, limit=args.limit)
+    elif args.cmd == "hotspots":
+        result = client.get_git_hotspots(limit=args.limit)
+    elif args.cmd == "issues":
+        result = client.get_issues(state=args.state, label=args.label, limit=args.limit)
+    elif args.cmd == "prs":
+        result = client.get_pull_requests(state=args.state, limit=args.limit)
     elif args.cmd == "code":
         result = client.search_code(args.query, limit=args.limit)
     elif args.cmd == "maturity":
