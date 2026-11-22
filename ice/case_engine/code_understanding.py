@@ -36,10 +36,12 @@ Key Capabilities (Customized for Software Engineering, NOT General Math):
 
 from __future__ import annotations
 
+import json
 import logging
 import re
 import uuid
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 from pydantic import BaseModel, Field
@@ -166,10 +168,14 @@ class CodeUnderstandingEngine:
     and anti-blind-copy-pasting.
     """
 
+    _DATA_DIR = Path(__file__).resolve().parent.parent / "data"
+    _DATA_FILE = _DATA_DIR / "code_understanding_store.json"
+
     _shared_plans: Dict[str, CodeUnderstandingPlan] = {}
     _shared_challenges: Dict[str, SocraticPracticeChallenge] = {}
     _shared_notes: Dict[str, DeveloperNoteRecord] = {}
     _shared_knowledge: Dict[str, Dict[str, Any]] = {}
+    _loaded_from_disk: bool = False
 
     def __init__(self, repointel_client: Optional[RepoIntelClient] = None):
         self.repointel = repointel_client or RepoIntelClient()
@@ -177,6 +183,47 @@ class CodeUnderstandingEngine:
         self._challenges = CodeUnderstandingEngine._shared_challenges
         self._notes = CodeUnderstandingEngine._shared_notes
         self._knowledge = CodeUnderstandingEngine._shared_knowledge
+
+        if not CodeUnderstandingEngine._loaded_from_disk:
+            self._load_from_disk()
+            CodeUnderstandingEngine._loaded_from_disk = True
+
+    def _save_to_disk(self) -> None:
+        """Persist active plans, challenges, notes, and knowledge graph to disk."""
+        try:
+            self._DATA_DIR.mkdir(parents=True, exist_ok=True)
+            payload = {
+                "plans": {k: v.model_dump() for k, v in self._plans.items()},
+                "challenges": {k: v.model_dump() for k, v in self._challenges.items()},
+                "notes": {k: v.model_dump() for k, v in self._notes.items()},
+                "knowledge": self._knowledge,
+            }
+            with open(self._DATA_FILE, "w", encoding="utf-8") as f:
+                json.dump(payload, f, indent=2)
+        except Exception as exc:
+            logger.warning(f"Could not save code understanding store: {exc}")
+
+    def _load_from_disk(self) -> None:
+        """Load persisted plans, challenges, notes, and knowledge graph from disk."""
+        if not self._DATA_FILE.exists():
+            return
+        try:
+            with open(self._DATA_FILE, "r", encoding="utf-8") as f:
+                payload = json.load(f)
+                for k, v in payload.get("plans", {}).items():
+                    if k not in self._plans:
+                        self._plans[k] = CodeUnderstandingPlan(**v)
+                for k, v in payload.get("challenges", {}).items():
+                    if k not in self._challenges:
+                        self._challenges[k] = SocraticPracticeChallenge(**v)
+                for k, v in payload.get("notes", {}).items():
+                    if k not in self._notes:
+                        self._notes[k] = DeveloperNoteRecord(**v)
+                for k, v in payload.get("knowledge", {}).items():
+                    if k not in self._knowledge:
+                        self._knowledge[k] = v
+        except Exception as exc:
+            logger.warning(f"Could not load code understanding store: {exc}")
 
     # -----------------------------------------------------------------
     # 1. Probing & Mental Model Assessment
@@ -383,6 +430,7 @@ class CodeUnderstandingEngine:
             current_node_id=nodes[0].id,
         )
         self._plans[plan_id] = plan
+        self._save_to_disk()
         return plan
 
     # -----------------------------------------------------------------
@@ -658,6 +706,7 @@ class CodeUnderstandingEngine:
             summary=summary,
         )
         self._notes[note_id] = record
+        self._save_to_disk()
         return record
 
     # -----------------------------------------------------------------
@@ -869,6 +918,7 @@ class CodeUnderstandingEngine:
             current_rung=-1,
         )
         self._challenges[problem_id] = prob
+        self._save_to_disk()
         return prob
 
     def get_hint(
@@ -890,6 +940,7 @@ class CodeUnderstandingEngine:
         prob.current_rung = target_rung
         hint_text = prob.hint_ladder[target_rung]
         rung_label = HINT_RUNGS.get(target_rung, f"R{target_rung}")
+        self._save_to_disk()
 
         stuck_diag = None
         if thinking_trace:
@@ -940,13 +991,16 @@ class CodeUnderstandingEngine:
                 "rationale": "When state is immutable and grounded in AST realities, guidance is provably consistent.",
             })
 
-        return {
+        result = {
             "case_id": case_id,
             "propositions_extracted": len(nodes),
             "reasoning_chains_derived": len(chains),
             "propositions": nodes,
             "chains": chains,
         }
+        self._knowledge[case_id] = result
+        self._save_to_disk()
+        return result
 
     # Backward-compatibility aliases for legacy callers
     probe_learner_edge = probe_developer_understanding

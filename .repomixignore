@@ -23,6 +23,8 @@ learnharness.md
 # Virtual environments
 .venv/
 venv/
+ice/data/
+data/
 env/
 
 # Python cache & compiled files

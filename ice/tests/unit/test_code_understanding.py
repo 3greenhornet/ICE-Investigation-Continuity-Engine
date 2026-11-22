@@ -262,3 +262,24 @@ class TestMCPToolsProtocolDispatch:
         }
         v_res = await dispatch_request(v_req)
         assert v_res["result"]["structured"]["target_file"] == "main.py"
+
+
+class TestPersistenceAndReload:
+    def test_disk_persistence_and_reload(self, tmp_path):
+        engine = CodeUnderstandingEngine()
+        engine._DATA_DIR = tmp_path
+        engine._DATA_FILE = tmp_path / "test_store.json"
+
+        note = engine.ingest_developer_notes("Invariant: Never leak database connections.")
+        plan = engine.plan_codebase_learning("Master transaction isolation")
+
+        assert engine._DATA_FILE.exists()
+
+        engine2 = CodeUnderstandingEngine()
+        engine2._DATA_DIR = tmp_path
+        engine2._DATA_FILE = tmp_path / "test_store.json"
+        engine2._load_from_disk()
+
+        assert note.note_id in engine2._notes
+        assert plan.plan_id in engine2._plans
+

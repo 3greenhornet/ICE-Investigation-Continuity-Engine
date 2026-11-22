@@ -18,6 +18,8 @@ __pycache__/
 *.db
 *.db-shm
 *.db-wal
+ice/data/
+data/
 
 .DS_Store
 Thumbs.db
