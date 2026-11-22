@@ -962,6 +962,29 @@ async def ice_guide_import_learnharness(
     return engine.read_external_learnharness(data_dir=data_dir, max_sessions=max_sessions)
 
 
+@_safe
+async def ice_get_autonomy_level() -> Dict[str, Any]:
+    """Get the current system autonomy dial level (0=passive, 5=suggestive/auto-read-only, 10=autonomous)."""
+    from case_engine.action import get_autonomy_level
+    level = get_autonomy_level()
+    descriptions = {
+        0: "Level 0: Passive — all actions require explicit human approval.",
+        3: "Level 3: Low Autonomy — read-only code and search queries are auto-approved.",
+        5: "Level 5: Suggestive — read-only investigations auto-execute; mutations require approval.",
+        10: "Level 10: Autonomous — full self-directed investigation and patch drafting.",
+    }
+    desc = descriptions.get(level, f"Level {level}: Custom autonomy threshold.")
+    return {"autonomy_level": level, "description": desc}
+
+
+@_safe
+async def ice_set_autonomy_level(level: int) -> Dict[str, Any]:
+    """Configure the system autonomy dial (0 to 10)."""
+    from case_engine.action import set_autonomy_level
+    new_level = set_autonomy_level(level)
+    return await ice_get_autonomy_level()
+
+
 # Backward-compatibility aliases
 ice_tutor_probe = ice_guide_probe
 ice_tutor_plan_map = ice_guide_plan
@@ -1079,6 +1102,8 @@ TOOLS: Dict[str, Dict[str, Any]] = {
     "ice_guide_hint": {"fn": ice_guide_hint, "desc": "Get progressive hint from 6-rung ladder (R0 Attention to R5 Solution)"},
     "ice_guide_extract_knowledge": {"fn": ice_guide_extract_knowledge, "desc": "Extract durable propositions and reasoning chains into persistent knowledge graph"},
     "ice_guide_import_learnharness": {"fn": ice_guide_import_learnharness, "desc": "Import and synchronize existing LearnHarness sessions and knowledge graph"},
+    "ice_get_autonomy_level": {"fn": ice_get_autonomy_level, "desc": "Get current system autonomy dial level (0=passive, 5=suggestive/auto-read-only, 10=autonomous)"},
+    "ice_set_autonomy_level": {"fn": ice_set_autonomy_level, "desc": "Configure system autonomy dial (0 to 10)"},
 
     # Backwards-compatibility aliases
     "ice_tutor_probe": {"fn": ice_tutor_probe, "desc": "Alias: Bracket developer understanding edge"},

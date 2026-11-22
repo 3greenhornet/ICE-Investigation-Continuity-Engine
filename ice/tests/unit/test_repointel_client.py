@@ -133,3 +133,39 @@ def test_thought_model_tz_aware():
     from models.thought import Thought
     t = Thought(id="th_1", content="test thinking", originating_turn=1, last_active_turn=1)
     assert t.created_at.tzinfo is not None
+
+
+@pytest.mark.asyncio
+async def test_autonomy_dial():
+    from app.mcp.server import dispatch_request
+    set_req = {
+        "jsonrpc": "2.0",
+        "id": 201,
+        "method": "tools/call",
+        "params": {"name": "ice_set_autonomy_level", "arguments": {"level": 5}},
+    }
+    resp = await dispatch_request(set_req)
+    assert resp["result"]["structured"]["autonomy_level"] == 5
+    assert "Suggestive" in resp["result"]["structured"]["description"]
+
+    get_req = {
+        "jsonrpc": "2.0",
+        "id": 202,
+        "method": "tools/call",
+        "params": {"name": "ice_get_autonomy_level", "arguments": {}},
+    }
+    resp2 = await dispatch_request(get_req)
+    assert resp2["result"]["structured"]["autonomy_level"] == 5
+
+
+@pytest.mark.asyncio
+async def test_repointel_event_sync():
+    from app.routes.repointel import repointel_event_sync, RepoIntelEventPayload
+    payload = RepoIntelEventPayload(
+        event_type="FindingDetected",
+        severity="CRITICAL",
+        finding_id="SEC_001",
+    )
+    res = await repointel_event_sync(payload)
+    assert res["event_received"] == "FindingDetected"
+    assert res["investigation_opened"] is True

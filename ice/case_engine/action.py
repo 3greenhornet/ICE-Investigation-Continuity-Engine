@@ -40,6 +40,22 @@ logger = logging.getLogger(__name__)
 
 ENABLE_FALSIFICATION_LOOP = os.getenv("ENABLE_FALSIFICATION_LOOP", "false").lower() == "true"
 
+# The Autonomy Dial (PDF page 21: 0=passive, 3-5=auto-approve read-only, 10=autonomous)
+AUTONOMY_LEVEL: int = int(os.getenv("AUTONOMY_LEVEL", "0"))
+
+
+def get_autonomy_level() -> int:
+    """Return the global autonomy dial level (0 to 10)."""
+    global AUTONOMY_LEVEL
+    return AUTONOMY_LEVEL
+
+
+def set_autonomy_level(level: int) -> int:
+    """Configure the system autonomy dial (0=passive, 5=suggestive/auto-read-only, 10=autonomous)."""
+    global AUTONOMY_LEVEL
+    AUTONOMY_LEVEL = max(0, min(10, int(level)))
+    return AUTONOMY_LEVEL
+
 SOURCE_FAMILIES = [
     "DOCUMENT", "URL", "TOOL", "HUMAN", "DATABASE", "LOG_FILE", "CODE_REPO",
 ]
@@ -156,6 +172,7 @@ async def create_action(
 
     action_id = f"act_{uuid.uuid4().hex[:12]}"
     now = datetime.now(timezone.utc)
+    status = "approved" if (approval_class == "READ_ONLY" and AUTONOMY_LEVEL >= 3) else "proposed"
 
     async with pool.acquire() as conn:
         await conn.execute(
@@ -165,19 +182,26 @@ async def create_action(
                 cost_estimate, risk,
                 expected_information_gain, decision_impact, falsification_value,
                 approval_required, approval_class, status, created_at
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, 'proposed', $13)
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
             """,
             action_id, case_id, action_type, target, expected_outcome,
             cost_estimate, risk,
             expected_information_gain, decision_impact, falsification_value,
-            approval_required, approval_class, now,
+            approval_required, approval_class, status, now,
         )
 
     await _emit_event(case_id, "action_proposed", {
         "action_id": action_id,
         "action_type": action_type,
         "target": target,
+        "status": status,
     })
+    if status == "approved":
+        await _emit_event(case_id, "action_approved", {
+            "action_id": action_id,
+            "auto_approved_by": "autonomy_dial",
+            "autonomy_level": AUTONOMY_LEVEL,
+        })
 
     return await get_action(action_id)
 

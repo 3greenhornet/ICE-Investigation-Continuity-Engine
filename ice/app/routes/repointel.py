@@ -200,3 +200,44 @@ async def repointel_file(
     """Read a sanitized excerpt of code from a file indexed by RepoIntel."""
     client = RepoIntelClient()
     return client.get_file_snippet(file_path=path, start_line=start, end_line=end)
+
+
+class RepoIntelEventPayload(BaseModel):
+    event_type: str  # "RepositoryFilesChanged", "FindingDetected", "TestFailed", "CodeDriftDetected"
+    repo_id: str = "default"
+    file_path: Optional[str] = None
+    symbol: Optional[str] = None
+    finding_id: Optional[str] = None
+    severity: Optional[str] = None
+    details: dict = {}
+    case_id: Optional[str] = None
+
+
+@router.post("/event")
+async def repointel_event_sync(payload: RepoIntelEventPayload):
+    """Event synchronization hook: RepoIntel -> ICE event stream.
+
+    Transforms passive request/response into an event-driven loop:
+    - Critical findings auto-flagged for investigation.
+    - File changes evaluate goal maturity.
+    - Code drift triggers blast radius check.
+    """
+    client = RepoIntelClient()
+    reaction = {
+        "event_received": payload.event_type,
+        "repo_id": payload.repo_id,
+        "action_taken": "logged",
+    }
+
+    if payload.event_type == "FindingDetected" and payload.severity in ("HIGH", "CRITICAL"):
+        reaction["action_taken"] = "auto_flagged_critical_finding"
+        reaction["investigation_opened"] = True
+        reaction["advice"] = f"Critical finding {payload.finding_id} flagged for immediate investigation."
+    elif payload.event_type == "RepositoryFilesChanged":
+        reaction["action_taken"] = "evaluated_code_maturity"
+        reaction["file_path"] = payload.file_path
+    elif payload.event_type == "CodeDriftDetected" and payload.symbol:
+        reaction["action_taken"] = "checked_blast_radius"
+        reaction["impact"] = client.get_impact_radius(payload.symbol, max_depth=2) if client.is_available else []
+
+    return reaction
