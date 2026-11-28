@@ -1,6 +1,7 @@
 """ui/streamlit_app.py — Investigation Continuity Engine UI entry point."""
 import streamlit as st
 
+from ui.screens.ask_ice import render as render_ask
 from ui.screens.case_overview import render as render_overview
 from ui.screens.goals_board import render as render_goals
 from ui.screens.hypothesis_board import render as render_hypotheses
@@ -27,6 +28,7 @@ for _k, _default in (
         st.session_state[_k] = _default
 
 tabs = st.tabs([
+    "Ask ICE",
     "Case Overview",
     "Goals & Progress",
     "Hypothesis Board",
@@ -37,16 +39,18 @@ tabs = st.tabs([
 ])
 
 with tabs[0]:
-    render_overview()
+    render_ask()
 with tabs[1]:
-    render_goals()
+    render_overview()
 with tabs[2]:
-    render_hypotheses()
+    render_goals()
 with tabs[3]:
-    render_evidence()
+    render_hypotheses()
 with tabs[4]:
-    render_discovery()
+    render_evidence()
 with tabs[5]:
-    render_trace()
+    render_discovery()
 with tabs[6]:
+    render_trace()
+with tabs[7]:
     render_debugger()

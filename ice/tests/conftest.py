@@ -1,3 +1,10 @@
+import os as _os
+
+# Unit tests never load the local embedding model through the SEARCH router
+# (case_engine.router); tests that exercise it opt in explicitly.
+_os.environ.setdefault("ICE_SEMANTIC_ROUTER", "0")
+_os.environ.setdefault("ICE_FINGERPRINT_EMBED", "0")
+_os.environ.setdefault("ICE_WARM_EMBEDDER", "0")
 """tests/conftest.py — test-suite-local fixtures and import shims.
 
 Why this file exists (documented deviation from the doc §5.1 tree, which

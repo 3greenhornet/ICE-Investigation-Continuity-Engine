@@ -43,6 +43,7 @@ Deps:       db.connection, case_engine (_emit_event), exceptions.
 from __future__ import annotations
 
 import logging
+import os
 import re
 import json
 import uuid
@@ -362,6 +363,89 @@ async def _previous_goal_metrics(prev_progress: Optional[dict]) -> Optional[dict
     return meta.get("metrics") if isinstance(meta, dict) else None
 
 
+# --------------------------------------------------------------------------
+# Stall trigger: a goal that stops improving gets cross-domain research by
+# itself (CHANGES.md "Automatic discovery on stalled goals").
+# --------------------------------------------------------------------------
+_AUTO_TASKS: set = set()
+_AUTO_STATE = os.getenv("ICE_AUTO_DISCOVERY_STATE", "")
+_STALL = ("unchanged", "regressed")
+_DONE_MATURITY = ("verified", "runtime_observed")
+
+
+def _auto_state_path():
+    from pathlib import Path
+
+    return Path(_AUTO_STATE) if _AUTO_STATE else Path(__file__).resolve().parent.parent / "data" / "auto_discovery.json"
+
+
+def _prev_progress_status(prev: Optional[dict]) -> Optional[str]:
+    m = re.search(r"\[(baseline|improved|regressed|unchanged);", (prev or {}).get("note") or "")
+    return m.group(1) if m else None
+
+
+def auto_discovery_decision(goal: dict, progress_status: str, prev_status: Optional[str],
+                            maturity: str, now: float, last_run: Optional[float]) -> tuple[bool, str]:
+    """Pure decision (unit-tested): run discovery for this goal now?"""
+    mode = os.getenv("ICE_AUTO_DISCOVERY", "auto").strip().lower()
+    if mode in ("0", "off", "false", "no"):
+        return False, "disabled (ICE_AUTO_DISCOVERY=0)"
+    if mode != "force":
+        from case_engine.action import get_autonomy_level
+
+        if get_autonomy_level() < 1:
+            return False, "autonomy level 0 (passive)"
+    if goal.get("status") not in ("active", "exploring"):
+        return False, f"goal is {goal.get('status')}"
+    if maturity in _DONE_MATURITY:
+        return False, f"goal already {maturity}"
+    if progress_status not in _STALL or prev_status not in _STALL:
+        return False, "not stalled (needs two consecutive checks without improvement)"
+    cooldown = float(os.getenv("ICE_AUTO_DISCOVERY_COOLDOWN_H", "24")) * 3600
+    if last_run and now - last_run < cooldown:
+        return False, "ran within the cooldown"
+    return True, f"stalled ({prev_status} -> {progress_status})"
+
+
+async def _run_auto_discovery(goal: dict, repo: Optional[str]) -> None:
+    from case_engine.discovery import discover
+
+    try:
+        r = await discover(goal["statement"], case_id=goal["case_id"], repo=repo)
+        logger.info("auto-discovery for goal %s: %d cards, errors=%s", goal["goal_id"],
+                    len(r.get("cards", [])), r.get("errors"))
+    except Exception as exc:  # background task: log, never raise
+        logger.warning("auto-discovery for goal %s failed: %s", goal["goal_id"], exc)
+
+
+def maybe_schedule_auto_discovery(goal: dict, progress_status: str, prev_status: Optional[str],
+                                  maturity: str, repo: Optional[str]) -> str:
+    import asyncio
+    import json
+    import time
+
+    path = _auto_state_path()
+    try:
+        state = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        state = {}
+    now = time.time()
+    run, why = auto_discovery_decision(goal, progress_status, prev_status, maturity, now,
+                                       state.get(goal["goal_id"]))
+    if not run:
+        return f"skipped: {why}"
+    state[goal["goal_id"]] = now
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(state), encoding="utf-8")
+    except OSError:
+        pass
+    task = asyncio.get_running_loop().create_task(_run_auto_discovery(goal, repo))
+    _AUTO_TASKS.add(task)
+    task.add_done_callback(_AUTO_TASKS.discard)
+    return f"scheduled: {why}"
+
+
 async def sync_maturity_from_code(goal_id: str, repo: Optional[str] = None) -> dict:
     """Close the goal-to-code loop: ask RepoIntel's knowledge base how far the
     goal is implemented, ingest that observation as TOOL evidence, and record
@@ -444,8 +528,11 @@ async def sync_maturity_from_code(goal_id: str, repo: Optional[str] = None) -> d
         goal_id, maturity, evidence_ids=[ev.evidence_id], assessed_by="ice",
         note=note,
     )
+    auto = maybe_schedule_auto_discovery(goal, progress_status, _prev_progress_status(prev_progress),
+                                         maturity, repo)
     return {
         **progress,
+        "auto_discovery": auto,
         "repo_id": repo_id,
         "divergence_risk": a.divergence_risk,
         "candidate_symbols": a.candidate_symbols,

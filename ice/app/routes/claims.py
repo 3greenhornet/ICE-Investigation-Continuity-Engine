@@ -6,11 +6,14 @@ POST /claims/{claim_id}/link                  link evidence (support|contradict)
 GET  /cases/{case_id}/claims                  list claims (optionally scoped
                                                to one hypothesis via query)
 GET  /claims/{claim_id}                       fetch one claim
+POST /claims/{claim_id}/status                retract or supersede a claim (or re-activate);
+                                              never deletes: the claim stays in the timeline
 """
 
-from typing import Optional
+from typing import Literal, Optional
 
 from fastapi import APIRouter, Depends, Query
+from pydantic import BaseModel, Field
 
 from app.deps import ClaimService, claim_service
 from app.schemas import ClaimCreate, ClaimResponse, LinkEvidenceRequest
@@ -65,4 +68,19 @@ async def list_claims_route(
 @router.get("/claims/{claim_id}", response_model=ClaimResponse)
 async def get_claim_route(claim_id: str, svc: ClaimService = Depends(claim_service)):
     c = await svc.get(claim_id)
+    return ClaimResponse.model_validate(c.model_dump())
+
+class ClaimStatusUpdate(BaseModel):
+    status: Literal["ACTIVE", "SUPERSEDED", "RETRACTED"]
+    reason: Optional[str] = Field(None, max_length=1000)
+
+
+@router.post("/claims/{claim_id}/status", response_model=ClaimResponse)
+async def claim_status_route(claim_id: str, payload: ClaimStatusUpdate):
+    """Lifecycle end for a claim (found by RepoIntel's lifecycle audit: claims
+    could be created and listed but never withdrawn). Goes through
+    case_engine.claim.set_claim_status, which emits claim_status_changed."""
+    from case_engine.claim import set_claim_status
+
+    c = await set_claim_status(claim_id, payload.status, payload.reason)
     return ClaimResponse.model_validate(c.model_dump())

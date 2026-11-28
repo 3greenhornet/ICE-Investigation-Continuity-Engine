@@ -10,6 +10,7 @@ Purpose:    Exposes RepoIntel's precision code tools over FastAPI (/api/v1/repoi
 
 from __future__ import annotations
 
+import os
 from typing import Optional
 
 from fastapi import APIRouter, Query
@@ -194,8 +195,8 @@ def repointel_explain_finding(finding_id: str, repo_id: Optional[str] = Query(No
 @router.get("/file")
 def repointel_file(
     path: str = Query(..., description="File path relative to repository root"),
-    start: int = Query(1, ge=1),
-    end: int = Query(100, ge=1),
+    start: int = Query(1, ge=1, le=10_000_000),
+    end: int = Query(100, ge=1, le=10_000_000),
 ):
     """Read a sanitized excerpt of code from a file indexed by RepoIntel."""
     client = RepoIntelClient()
@@ -291,6 +292,9 @@ async def repointel_event_sync(payload: RepoIntelEventPayload):
             reaction["investigation_opened"] = True
             reaction["persisted_evidence_id"] = ev.evidence_id
             reaction["case_id"] = payload.case_id
+            if os.getenv("ICE_EVENT_AUTO_CYCLE", "1").strip().lower() not in ("0", "false", "no"):
+                _schedule_bg(_wake_cycle(payload.case_id))
+                reaction["cycle_scheduled"] = True
         except CaseNotFoundError:
             # Not retryable: report it instead of a 404 so RepoIntel's
             # outbox does not replay the event forever.
@@ -299,8 +303,55 @@ async def repointel_event_sync(payload: RepoIntelEventPayload):
         # as retryable and keeps in its outbox.
     elif persist:
         reaction["hint"] = "Pass case_id to persist this event as case evidence."
+    elif (
+        payload.event_type == "RepositoryFilesChanged"
+        and payload.case_id
+        and os.getenv("ICE_EVENT_AUTO_CYCLE", "1").strip().lower() not in ("0", "false", "no")
+    ):
+        _schedule_bg(_sync_case_goals(payload.case_id, payload.repo_id))
+        reaction["goal_sync_scheduled"] = True
 
     return reaction
+
+
+_BG_TASKS: set = set()
+
+
+def _schedule_bg(coro) -> None:
+    import asyncio
+
+    try:
+        task = asyncio.get_running_loop().create_task(coro)
+        _BG_TASKS.add(task)
+        task.add_done_callback(_BG_TASKS.discard)
+    except RuntimeError:
+        coro.close()
+
+
+async def _wake_cycle(case_id: str) -> None:
+    try:
+        from case_engine.cycle import run_investigation_cycle
+
+        await run_investigation_cycle(
+            case_id,
+            enable_next_best_action=True,
+            enable_induction=True,
+            enable_workspace=False,
+            enable_auto_execute=False,
+        )
+    except Exception:
+        pass
+
+
+async def _sync_case_goals(case_id: str, repo_id: str) -> None:
+    try:
+        from case_engine.goals import list_goals, sync_maturity_from_code
+
+        for g in await list_goals(case_id):
+            if g.get("status") in ("active", "exploring"):
+                await sync_maturity_from_code(g["goal_id"], repo=repo_id)
+    except Exception:
+        pass
 
 
 class LabProposalTriggerRequest(BaseModel):

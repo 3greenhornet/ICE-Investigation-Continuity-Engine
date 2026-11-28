@@ -169,7 +169,7 @@ async def search_route(
 
 @router.get("/cases/{case_id}/contrastive")
 async def contrastive_route(
-    case_id: str, q: str = Query(..., min_length=2), limit: int = Query(8)
+    case_id: str, q: str = Query(..., min_length=2), limit: int = Query(8, ge=1, le=100)
 ):
     from case_engine.retrieval import contrastive_search
 
@@ -266,3 +266,25 @@ async def credibility_route(evidence_id: str):
     from case_engine.evidence import assess_evidence_credibility
 
     return await assess_evidence_credibility(evidence_id)
+
+
+from pydantic import BaseModel, Field
+
+
+class AskRequest(BaseModel):
+    message: str = Field(..., min_length=1, max_length=10000)
+    repo_id: Optional[str] = None
+    enable_falsification: bool = False
+
+
+@router.post("/cases/{case_id}/ask")
+async def ask_route(case_id: str, payload: AskRequest):
+    """Single-entry conversational orchestrator: ingest -> claims -> RepoIntel -> cycle -> reply."""
+    from case_engine.orchestrator import orchestrate_input
+
+    return await orchestrate_input(
+        case_id=case_id,
+        message=payload.message,
+        repo_id=payload.repo_id,
+        enable_falsification=payload.enable_falsification,
+    )

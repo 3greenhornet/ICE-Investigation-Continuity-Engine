@@ -18,6 +18,11 @@ dependencies = [
     # Numeric / graph substrate
     "numpy>=1.26",
     "networkx>=3.2",
+    "scikit-learn>=1.4",
+    # Local embeddings & web research
+    "sentence-transformers>=2.6",
+    "ddgs>=6.0",
+    "trafilatura>=1.8",
     # LLM access (case_engine/llm.py fallback chain; engine/client.py uses google-genai)
     "litellm>=1.40",
     "google-genai>=0.3",

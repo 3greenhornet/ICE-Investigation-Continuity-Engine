@@ -1,0 +1,105 @@
+{
+ "dataset": "CPR-eval (abstract-available subset)",
+ "queries": 80,
+ "results": {
+  "tfidf": {
+   "n": 80,
+   "recall@1": 0.075,
+   "recall@5": 0.2375,
+   "recall@10": 0.275,
+   "mrr@10": 0.1465,
+   "random_recall@10": 0.1704
+  },
+  "bge": {
+   "n": 80,
+   "recall@1": 0.05,
+   "recall@5": 0.175,
+   "recall@10": 0.25,
+   "mrr@10": 0.0983,
+   "random_recall@10": 0.1704
+  },
+  "hybrid": {
+   "n": 80,
+   "recall@1": 0.125,
+   "recall@5": 0.225,
+   "recall@10": 0.2875,
+   "mrr@10": 0.1656,
+   "random_recall@10": 0.1704
+  },
+  "random": {
+   "recall@10": 0.1704
+  },
+  "llm_subset": {
+   "tfidf": {
+    "n": 30,
+    "recall@1": 0.1,
+    "recall@5": 0.3,
+    "recall@10": 0.3333,
+    "mrr@10": 0.1792,
+    "random_recall@10": 0.1711
+   },
+   "bge": {
+    "n": 30,
+    "recall@1": 0.1,
+    "recall@5": 0.2333,
+    "recall@10": 0.2667,
+    "mrr@10": 0.1459,
+    "random_recall@10": 0.1711
+   },
+   "hybrid": {
+    "n": 30,
+    "recall@1": 0.1667,
+    "recall@5": 0.3,
+    "recall@10": 0.3333,
+    "mrr@10": 0.217,
+    "random_recall@10": 0.1711
+   },
+   "strip_tfidf": {
+    "n": 30,
+    "recall@1": 0.0667,
+    "recall@5": 0.2,
+    "recall@10": 0.3333,
+    "mrr@10": 0.1299,
+    "random_recall@10": 0.1711
+   },
+   "strip_bge": {
+    "n": 30,
+    "recall@1": 0.0667,
+    "recall@5": 0.2667,
+    "recall@10": 0.3667,
+    "mrr@10": 0.1378,
+    "random_recall@10": 0.1711
+   },
+   "strip_hybrid": {
+    "n": 30,
+    "recall@1": 0.1,
+    "recall@5": 0.2333,
+    "recall@10": 0.3,
+    "mrr@10": 0.1556,
+    "random_recall@10": 0.1711
+   },
+   "strip+orig_hybrid": {
+    "n": 30,
+    "recall@1": 0.1333,
+    "recall@5": 0.3,
+    "recall@10": 0.4333,
+    "mrr@10": 0.1973,
+    "random_recall@10": 0.1711
+   },
+   "examples": [
+    {
+     "query": "How to understand firms\u2019 responses outside the market to economic policy uncertainty affecting regulatory compliance and access to government-controlled benefits in emerging economies such as China",
+     "stripped": "Given a set of observations of policy\u2011uncertainty indices, firm attributes, regulatory\u2011environment variables, and outcomes reflecting compliance and benefit access, compute a statistical mapping that quantifies how uncertainty influences firm responses. The computation must estimate parameters of this mapping or generate predicted response levels for any firm under specified uncertainty conditions. The output is a set of estimated coefficients (or predictive functions) describing the relationship. The estimation must respect constraints such as limited sample size, potential endogeneity, and heterogeneity across firms."
+    },
+    {
+     "query": "How to select an economically viable option suited to Deokjeok-do\u2019s extreme winds, airflow variability, and local geography",
+     "stripped": "The task is to choose an element from a finite set of alternatives. Each alternative is associated with a vector of quantitative attributes and a cost value. The decision must satisfy a collection of inequality constraints that depend on a spatially varying field and on additional parameters. The objective is to minimize the cost while respecting all constraints. The output is the identifier of the selected alternative."
+    },
+    {
+     "query": "How to determine the requirements for BMP-induced miR-101 transcription in vascular smooth muscle cells",
+     "stripped": "Given a collection of experimental observations linking various signaling inputs and molecular entities to the measured transcription level of a target microRNA, decide which subset of inputs is necessary and sufficient to induce transcription above a threshold. The inputs are represented as a set of binary or continuous variables describing the presence or activity of signaling molecules, transcription factors, and environmental conditions. The output is a logical rule or minimal set of conditions that guarantees activation. Constraints include limited sample size, measurement noise, and the requirement that the rule be parsimonious."
+    }
+   ]
+  }
+ }
+}

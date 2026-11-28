@@ -752,11 +752,11 @@ async def _repo_for_case(case_id: Optional[str]) -> Optional[str]:
 
 async def discover(problem: str, case_id: Optional[str] = None, n_fields: int = 5,
                    ingest: bool = True, catalogue: bool = True, repo: Optional[str] = None,
-                   seed: Optional[int] = None) -> dict:
+                   seed: Optional[int] = None, fingerprint: bool = True) -> dict:
     """Run the whole pipeline. ``ingest`` writes cards as case evidence (needs
     case_id); ``catalogue`` records them in mechanism_lab. Never raises."""
     try:
-        return await _discover(problem, case_id, n_fields, ingest, catalogue, repo, seed)
+        return await _discover(problem, case_id, n_fields, ingest, catalogue, repo, seed, fingerprint)
     except Exception as exc:  # contract: a failed discovery is a status, not a crash
         logger.exception("discovery failed")
         return {"problem": problem, "error": f"{type(exc).__name__}: {exc}"[:300], "cards": [],
@@ -764,7 +764,8 @@ async def discover(problem: str, case_id: Optional[str] = None, n_fields: int = 
 
 
 async def _discover(problem: str, case_id: Optional[str], n_fields: int, ingest: bool,
-                    catalogue: bool, repo: Optional[str], seed: Optional[int]) -> dict:
+                    catalogue: bool, repo: Optional[str], seed: Optional[int],
+                    fingerprint: bool = True) -> dict:
     t0 = time.monotonic()
     timings: dict[str, float] = {}
     errors: list[str] = []
@@ -801,7 +802,35 @@ async def _discover(problem: str, case_id: Optional[str], n_fields: int, ingest:
             groups.append({"field": c["field"], "works": s["works"]})
     lap("sources")
 
+    # Structural re-ranking (case_engine.fingerprint): the problem and every
+    # source are reduced to domain-stripped computational fingerprints, so a
+    # paper from another field that computes the same thing outranks one that
+    # only shares vocabulary. Off with fingerprint=False (ablation).
+    structural: dict = {"used": False}
+    if fingerprint and abstract["by"] == "llm" and groups:
+        from case_engine.fingerprint import fingerprint_problem, fingerprint_works, rank_works
+
+        problem_fp = await fingerprint_problem(problem, case_id)
+        flat = [{**w, "field": g["field"]} for g in groups for w in g["works"]]
+        fps = await fingerprint_works(flat, case_id)
+        ranked = rank_works(problem_fp, problem, flat, fps)  # original wording + stripped view
+        best: dict[str, float] = {}
+        for g in groups:
+            g["works"] = [r for r in ranked if r["field"] == g["field"]][:4]
+            best[g["field"]] = g["works"][0]["structural_score"] if g["works"] else 0.0
+        groups.sort(key=lambda g: -best[g["field"]])
+        structural = {"used": True, "problem_fingerprint": problem_fp, "fingerprinted": len(fps),
+                      "of": len(flat),
+                      "top": [{"title": r["title"], "field": r["field"], "score": r["structural_score"],
+                               "facet_matches": r["facet_matches"]} for r in ranked[:8]]}
+        lap("fingerprint")
+
     cards = await extract_cards(problem, abstract, groups, case_id) if abstract["by"] == "llm" else []
+    if structural.get("used"):
+        score_by_url = {w["url"]: w.get("structural_score", 0.0) for g in groups for w in g["works"]}
+        for c in cards:
+            c["structural_score"] = max((score_by_url.get(s["url"], 0.0) for s in c["sources"]), default=0.0)
+        cards.sort(key=lambda c: -c.get("structural_score", 0.0))
     lap("cards")
     if cards:
         errors += await attach_implementations(cards)
@@ -839,6 +868,7 @@ async def _discover(problem: str, case_id: Optional[str], n_fields: int, ingest:
         "leads": [] if cards else [{"field": g["field"], "works": g["works"][:3]} for g in groups],
         "diversity": {"selected": len(picked), "distinct_parent_areas": len(covered),
                       "sources_from_openalex_census": sum("openalex" in c["origin"] for c in picked)},
+        "structural": structural,
         "persisted": persisted, "errors": sorted(set(errors)), "timings_s": timings,
         "seconds": round(time.monotonic() - t0, 1),
         "note": ("Mechanisms come from the cited sources; each 'adaptation' is an untested proposal. "

@@ -272,11 +272,15 @@ async def case_trace_route(case_id: str, limit: int = Query(100, ge=1, le=1000))
     async with pool.acquire() as conn:
         rows = await conn.fetch(
             """
-            SELECT * FROM case_events
+            SELECT event_id, case_id, event_type, event_seq, conversation_turn,
+                   wall_clock_time, payload
+            FROM case_events
             WHERE case_id = $1
             ORDER BY event_seq DESC
             LIMIT $2
             """,
             case_id, limit,
         )
-    return [CaseEventResponse.model_validate(dict(r)) for r in rows]
+    from app.routes.replay import _row_to_event
+
+    return [_row_to_event(r) for r in rows]

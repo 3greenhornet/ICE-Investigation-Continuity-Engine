@@ -12,7 +12,9 @@ import os
 
 import httpx
 
-BASE_URL = os.getenv("API_BASE_URL", "http://localhost:8000/api/v1")
+BASE_URL = os.getenv("API_BASE_URL", "http://localhost:8000/api/v1").rstrip("/")
+if not BASE_URL.endswith("/api/v1"):
+    BASE_URL += "/api/v1"  # accept a bare host:port (a common misconfiguration)
 
 
 def _client(timeout: float = 30.0) -> httpx.AsyncClient:
@@ -427,5 +429,20 @@ async def trigger_lab_proposal(
         payload["repo"] = repo
     async with _client(timeout=60.0) as client:
         r = await client.post("/repointel/lab-proposals", json=payload)
+        r.raise_for_status()
+        return r.json()
+
+
+async def ask_ice(
+    case_id: str,
+    message: str,
+    repo_id: str | None = None,
+    enable_falsification: bool = False,
+):
+    payload: dict = {"message": message, "enable_falsification": enable_falsification}
+    if repo_id:
+        payload["repo_id"] = repo_id
+    async with _client(timeout=90.0) as client:
+        r = await client.post(f"/cases/{case_id}/ask", json=payload)
         r.raise_for_status()
         return r.json()

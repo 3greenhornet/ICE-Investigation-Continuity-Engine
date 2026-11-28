@@ -54,12 +54,16 @@ litellm.num_retries = 2
 
 logger = logging.getLogger(__name__)
 
+# Same providers as RepoIntel (app/core/reasoning/llm_client.py) in a rotated
+# order: at every position the two services ask a different provider first,
+# so they do not exhaust the same rate limit together. The local Ollama model
+# (local_llm_model) is appended last when it is reachable.
 DEFAULT_FALLBACK_MODELS: list[str] = [
     "groq/openai/gpt-oss-120b",
-    "groq/openai/gpt-oss-20b",
+    "mistral/mistral-small-latest",
     "openrouter/meta-llama/llama-3.3-70b-instruct",
     "gemini/gemini-2.5-flash",
-    "mistral/mistral-small-latest",
+    "groq/openai/gpt-oss-20b",
 ]
 
 _PROVIDER_KEY_MAP: dict[str, str] = {
@@ -81,6 +85,40 @@ LLM_ROLES = ("GENERATOR", "CRITIC", "RANKER", "EXTRACTOR", "GENERAL")
 _LEDGER_ENABLED = os.getenv("ENABLE_LLM_LEDGER", "true").lower() == "true"
 
 
+
+# --- local model fallback (Ollama) -------------------------------------------
+_LOCAL_PROBE: dict = {}
+
+
+def local_llm_model() -> "str | None":
+    """The local Ollama model, appended as the LAST fallback when the server
+    answers on OLLAMA_API_BASE (default: the workspace instance on :11435).
+    LOCAL_LLM_FALLBACK=0 disables it. Probed once per minute, so a stopped
+    Ollama costs a 0.3 s connect attempt, not a request timeout."""
+    import os
+    import socket
+    import time
+    from urllib.parse import urlparse
+
+    if os.getenv("LOCAL_LLM_FALLBACK", "1").strip().lower() in ("0", "false", "no"):
+        return None
+    model = os.getenv("LOCAL_LLM_MODEL", "ollama_chat/qwen2.5:3b").strip()
+    base = os.getenv("OLLAMA_API_BASE", "http://127.0.0.1:11435").strip()
+    now = time.monotonic()
+    hit = _LOCAL_PROBE.get(base)
+    if hit is None or now - hit[0] > 60:
+        u = urlparse(base)
+        try:
+            with socket.create_connection((u.hostname or "127.0.0.1", u.port or 11434), timeout=0.3):
+                ok = True
+        except OSError:
+            ok = False
+        _LOCAL_PROBE[base] = hit = (now, ok)
+    if not hit[1]:
+        return None
+    os.environ.setdefault("OLLAMA_API_BASE", base)  # LiteLLM reads it for ollama/* models
+    return model
+
 def _resolve_active_models() -> list[str]:
     """Return the ordered list of fallback models whose provider API key is set.
 
@@ -100,7 +138,11 @@ def _resolve_active_models() -> list[str]:
         if chain
         else DEFAULT_FALLBACK_MODELS
     )
-    return _filter_keyed(models)
+    active = _filter_keyed(models)
+    local = local_llm_model()
+    if local and local not in active:
+        active.append(local)
+    return active
 
 
 def _filter_keyed(models: list[str]) -> list[str]:
@@ -108,6 +150,10 @@ def _filter_keyed(models: list[str]) -> list[str]:
     active: list[str] = []
     for model in models:
         provider = model.split("/", 1)[0].lower()
+        if provider in ("ollama", "ollama_chat"):
+            if local_llm_model() is not None:
+                active.append(model)
+            continue
         key_env = _PROVIDER_KEY_MAP.get(provider)
         if key_env is None:
             logger.warning(
@@ -482,7 +528,8 @@ async def _call_llm_json(
                     "model": model,
                     "messages": messages,
                     "temperature": temperature,
-                    "timeout": timeout,
+                    # a local model needs time to load and runs on CPU/small GPU
+                    "timeout": max(timeout, 180.0) if model.startswith("ollama") else timeout,
                 }
                 if not model.startswith("openrouter"):
                     kwargs["response_format"] = {"type": "json_object"}
@@ -589,7 +636,7 @@ async def _call_llm_text(
                 "model": model,
                 "messages": messages,
                 "temperature": temperature,
-                "timeout": timeout,
+                "timeout": max(timeout, 180.0) if model.startswith("ollama") else timeout,
             }
             _maybe_seed(kwargs)
 

@@ -1583,19 +1583,35 @@ def search_scope(target: str, params: Optional[dict] = None) -> str:
     and everything else stays in the codebase. If RepoIntel's knowledge base
     is not available at all, web is the only place to look.
     """
+    return search_scope_explain(target, params)["scope"]
+
+
+def search_scope_explain(target: str, params: Optional[dict] = None) -> dict:
+    """search_scope with its reason. Order: explicit scope; no RepoIntel KB
+    -> web; the learned semantic router (case_engine.router) when it is
+    clearly confident; the keyword cues as the fallback for close calls or
+    when no local embedder is available."""
     params = params or {}
     scope = str(params.get("scope", "")).lower()
     if scope in ("code", "web"):
-        return scope
-    if _WEB_CUES.search(target or ""):
-        return "web"
+        return {"scope": scope, "reason": "explicit"}
     try:
         from case_engine.repointel_client import RepoIntelClient
         if not RepoIntelClient().is_available:
-            return "web"
+            return {"scope": "web", "reason": "no RepoIntel knowledge base"}
     except Exception:
-        return "web"
-    return "code"
+        return {"scope": "web", "reason": "no RepoIntel knowledge base"}
+    if os.getenv("ICE_SEMANTIC_ROUTER", "1").lower() not in ("0", "false", "no"):
+        try:
+            from case_engine.router import get_router
+
+            route, info = get_router().route(target or "")
+            if route:
+                return {"scope": route, **info}
+        except Exception as exc:
+            logger.debug("semantic router failed: %s", exc)
+    cue = bool(_WEB_CUES.search(target or ""))
+    return {"scope": "web" if cue else "code", "reason": "keyword cues (fallback)"}
 
 
 class LabProposeExecutor:
@@ -1873,6 +1889,18 @@ async def _run_action_executor(
             OUTCOME_EVIDENCE_PRODUCED if result else OUTCOME_UNINFORMATIVE,
             evidence_ids=result,
         )
+    # Router learning: a natural-language SEARCH that produced evidence
+    # becomes an example of the route it took.
+    target = (action.target or "").strip()
+    if (action.action_type == "SEARCH" and target and not target.startswith(("http://", "https://"))
+            and getattr(result, "outcome", None) == OUTCOME_EVIDENCE_PRODUCED):
+        try:
+            from case_engine.router import get_router
+
+            route = "code" if isinstance(executor, RepoIntelExecutor) else "web"
+            get_router().record(target, route)
+        except Exception as exc:
+            logger.debug("router feedback skipped: %s", exc)
     return result
 
 

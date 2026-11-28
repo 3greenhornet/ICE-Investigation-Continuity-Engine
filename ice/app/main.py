@@ -35,6 +35,21 @@ logger = logging.getLogger(__name__)
 async def lifespan(app: FastAPI):
     await init_db()
     logger.info("ICE database pool initialized")
+    # Load the local embedding model in the background so the first search or
+    # ingest does not pay the model load (found by API fuzzing: >60 s first call).
+    import threading
+
+    def _warm_embedder():
+        try:
+            from engine.memory import EMBEDDING_BACKEND, embed_local_sync
+
+            if EMBEDDING_BACKEND != "gemini" and os.getenv("ICE_WARM_EMBEDDER", "1") != "0":
+                embed_local_sync(["warm-up"])
+                logger.info("local embedding model loaded")
+        except Exception as exc:
+            logger.warning("embedding warm-up skipped: %s", exc)
+
+    threading.Thread(target=_warm_embedder, name="ice-embed-warmup", daemon=True).start()
     yield
     await close_db()
     logger.info("ICE database pool closed")

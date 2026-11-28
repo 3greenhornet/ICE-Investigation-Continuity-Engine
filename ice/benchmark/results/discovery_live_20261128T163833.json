@@ -1,0 +1,536 @@
+{
+ "summary": {
+  "baseline": {
+   "cases": 8,
+   "mech_hit_rate": 0.0,
+   "mean_mech_recall": 0.0,
+   "domain_hit_rate": 0.0,
+   "mean_areas": 0.0,
+   "mean_seconds": 16.0
+  },
+  "discover": {
+   "cases": 8,
+   "mech_hit_rate": 0.125,
+   "mean_mech_recall": 0.031,
+   "domain_hit_rate": 0.75,
+   "mean_areas": 5.0,
+   "mean_seconds": 123.9
+  },
+  "discover+fp": {
+   "cases": 8,
+   "mech_hit_rate": 0.375,
+   "mean_mech_recall": 0.104,
+   "domain_hit_rate": 0.75,
+   "mean_areas": 5.0,
+   "mean_seconds": 193.7
+  }
+ },
+ "rows": [
+  {
+   "mech_hit": false,
+   "mech_recall": 0.0,
+   "found": [],
+   "domain_hit": false,
+   "domains": [],
+   "areas": 0,
+   "seconds": 70.9,
+   "case": "xd_01_chatbot_repetition",
+   "variant": "baseline",
+   "cards": null,
+   "errors": null
+  },
+  {
+   "mech_hit": false,
+   "mech_recall": 0.0,
+   "found": [],
+   "domain_hit": true,
+   "domains": [
+    "Behavioral Ecology"
+   ],
+   "areas": 5,
+   "seconds": 119.9,
+   "case": "xd_01_chatbot_repetition",
+   "variant": "discover",
+   "cards": [
+    "Fine\u2011Grained Context Learning (FiRE)",
+    "Prototype\u2011Guided Retrieval (EHR\u2011RAGp)",
+    "Multi\u2011Island Evolutionary Optimization (EOS)",
+    "Personalised Popularity Scores (PPS)",
+    "Diversity\u2011Aware Curriculum Sampling"
+   ],
+   "errors": [
+    "OpenAlex HTTP 429",
+    "SemanticScholar HTTP 429"
+   ]
+  },
+  {
+   "mech_hit": true,
+   "mech_recall": 0.25,
+   "found": [
+    "Maximal Marginal Relevance"
+   ],
+   "domain_hit": true,
+   "domains": [
+    "Information Retrieval",
+    "Recommender Systems"
+   ],
+   "areas": 5,
+   "seconds": 177.0,
+   "case": "xd_01_chatbot_repetition",
+   "variant": "discover+fp",
+   "cards": [
+    "Submodular Function Optimization for Relevance\u2011Diversity",
+    "Maximum Marginal Relevance (MMR) Reranking",
+    "Stream\u2011Based Max\u2011Min Diversification",
+    "Bi\u2011objective Evolutionary Algorithm (GSEMO) for Result Diversification",
+    "Relevance Filtering for Embedding\u2011Based Retrieval",
+    "System\u2011Wide Diversity Metrics & Optimization"
+   ],
+   "errors": [
+    "GitHub API HTTP 403",
+    "OpenAlex HTTP 429",
+    "SemanticScholar HTTP 429"
+   ]
+  },
+  {
+   "mech_hit": false,
+   "mech_recall": 0.0,
+   "found": [],
+   "domain_hit": false,
+   "domains": [],
+   "areas": 0,
+   "seconds": 6.4,
+   "case": "xd_02_flaky_ci_triage",
+   "variant": "baseline",
+   "cards": null,
+   "errors": null
+  },
+  {
+   "mech_hit": false,
+   "mech_recall": 0.0,
+   "found": [],
+   "domain_hit": true,
+   "domains": [
+    "Signal Detection Theory"
+   ],
+   "areas": 5,
+   "seconds": 96.4,
+   "case": "xd_02_flaky_ci_triage",
+   "variant": "discover",
+   "cards": [
+    "Non-deterministic Job Rerun Heuristic",
+    "Few-Shot Fine-Tuned Language Model for Failure Categorization",
+    "SCRIBE Integrated HW\u2011SW Diagnosis Framework",
+    "Idempotence Checkpoint/Redo\u2011Log Runtime",
+    "Correct\u2011by\u2011Construction Fault\u2011Tolerant Voter",
+    "Triple Modular Redundancy FDIR Component"
+   ],
+   "errors": [
+    "GitHub API HTTP 403",
+    "OpenAlex HTTP 429",
+    "SemanticScholar HTTP 429"
+   ]
+  },
+  {
+   "mech_hit": false,
+   "mech_recall": 0.0,
+   "found": [],
+   "domain_hit": false,
+   "domains": [],
+   "areas": 5,
+   "seconds": 107.7,
+   "case": "xd_02_flaky_ci_triage",
+   "variant": "discover+fp",
+   "cards": [
+    "Few-Shot Learning",
+    "SCRIBE",
+    "MANDARIN",
+    "GenLouvin Community Detection"
+   ],
+   "errors": [
+    "OpenAlex HTTP 429",
+    "SemanticScholar HTTP 429"
+   ]
+  },
+  {
+   "mech_hit": false,
+   "mech_recall": 0.0,
+   "found": [],
+   "domain_hit": false,
+   "domains": [],
+   "areas": 0,
+   "seconds": 7.7,
+   "case": "xd_03_stale_rag_memory",
+   "variant": "baseline",
+   "cards": null,
+   "errors": null
+  },
+  {
+   "mech_hit": false,
+   "mech_recall": 0.0,
+   "found": [],
+   "domain_hit": true,
+   "domains": [
+    "Library Science"
+   ],
+   "areas": 5,
+   "seconds": 156.7,
+   "case": "xd_03_stale_rag_memory",
+   "variant": "discover",
+   "cards": [
+    "Push-Pull Age-Aware Gossip Protocol",
+    "Reliability\u2011Weighted Age Gossip",
+    "ECC\u2011Extended Refresh Interval Model",
+    "Critic\u2011Guided Residual Data Selection (CODS)",
+    "Outdated Metadata Detection for Library Links"
+   ],
+   "errors": [
+    "OpenAlex HTTP 429",
+    "SemanticScholar HTTP 429"
+   ]
+  },
+  {
+   "mech_hit": false,
+   "mech_recall": 0.0,
+   "found": [],
+   "domain_hit": true,
+   "domains": [
+    "Computer Systems"
+   ],
+   "areas": 5,
+   "seconds": 220.8,
+   "case": "xd_03_stale_rag_memory",
+   "variant": "discover+fp",
+   "cards": [
+    "KAIROS",
+    "Multiversion Concurrency Control (MVCC)",
+    "Lazy Invalidation"
+   ],
+   "errors": [
+    "OpenAlex HTTP 429",
+    "SemanticScholar HTTP 429"
+   ]
+  },
+  {
+   "mech_hit": false,
+   "mech_recall": 0.0,
+   "found": [],
+   "domain_hit": false,
+   "domains": [],
+   "areas": 0,
+   "seconds": 10.1,
+   "case": "xd_04_llm_retry_cascade",
+   "variant": "baseline",
+   "cards": null,
+   "errors": null
+  },
+  {
+   "mech_hit": true,
+   "mech_recall": 0.25,
+   "found": [
+    "Decorrelated Exponential Backoff"
+   ],
+   "domain_hit": true,
+   "domains": [
+    "Computer Networking"
+   ],
+   "areas": 5,
+   "seconds": 173.8,
+   "case": "xd_04_llm_retry_cascade",
+   "variant": "discover",
+   "cards": [
+    "RetryGuard",
+    "Exponential Backoff",
+    "Linear Quadratic Regulator (LQR) Controller"
+   ],
+   "errors": [
+    "OpenAlex HTTP 429",
+    "SemanticScholar HTTP 429"
+   ]
+  },
+  {
+   "mech_hit": true,
+   "mech_recall": 0.25,
+   "found": [
+    "Decorrelated Exponential Backoff"
+   ],
+   "domain_hit": true,
+   "domains": [
+    "Computer Networking",
+    "Control Theory"
+   ],
+   "areas": 5,
+   "seconds": 575.6,
+   "case": "xd_04_llm_retry_cascade",
+   "variant": "discover+fp",
+   "cards": [
+    "Postponement-based Appointment Scheduling",
+    "Multi\u2011Stage Backoff Strategy",
+    "Channel\u2011Aware Adaptive CSMA (A\u2011CSMA)",
+    "Queueing\u2011Based Integrated Scheduling"
+   ],
+   "errors": [
+    "OpenAlex ConnectTimeout: ",
+    "OpenAlex HTTP 429",
+    "SemanticScholar ConnectTimeout: ",
+    "SemanticScholar HTTP 429",
+    "arXiv ConnectTimeout: "
+   ]
+  },
+  {
+   "mech_hit": false,
+   "mech_recall": 0.0,
+   "found": [],
+   "domain_hit": false,
+   "domains": [],
+   "areas": 0,
+   "seconds": 8.4,
+   "case": "xd_05_change_blast_radius",
+   "variant": "baseline",
+   "cards": null,
+   "errors": null
+  },
+  {
+   "mech_hit": false,
+   "mech_recall": 0.0,
+   "found": [],
+   "domain_hit": true,
+   "domains": [
+    "Power Systems Engineering",
+    "Network Science"
+   ],
+   "areas": 5,
+   "seconds": 134.7,
+   "case": "xd_05_change_blast_radius",
+   "variant": "discover",
+   "cards": [
+    "Relationship\u2011Based Change Propagation",
+    "Interprocedural Constant Propagation",
+    "Change\u2011Propagation Risk Estimation via TRL and Architecture",
+    "Virtual Signal Parameter Propagation Model",
+    "Cascading Failure Model for Interdependent Networks",
+    "Power\u2011Flow\u2011Enhanced Percolation Theory"
+   ],
+   "errors": []
+  },
+  {
+   "mech_hit": false,
+   "mech_recall": 0.0,
+   "found": [],
+   "domain_hit": true,
+   "domains": [
+    "Power Systems Engineering"
+   ],
+   "areas": 5,
+   "seconds": 167.4,
+   "case": "xd_05_change_blast_radius",
+   "variant": "discover+fp",
+   "cards": [
+    "Dynamic Network Analysis",
+    "Spillover Index",
+    "Network Analysis",
+    "Perturbation Biology",
+    "Bayesian Parameter Estimation"
+   ],
+   "errors": [
+    "OpenAlex HTTP 429",
+    "SemanticScholar HTTP 429"
+   ]
+  },
+  {
+   "mech_hit": false,
+   "mech_recall": 0.0,
+   "found": [],
+   "domain_hit": false,
+   "domains": [],
+   "areas": 0,
+   "seconds": 10.5,
+   "case": "xd_06_multi_agent_allocation",
+   "variant": "baseline",
+   "cards": null,
+   "errors": null
+  },
+  {
+   "mech_hit": false,
+   "mech_recall": 0.0,
+   "found": [],
+   "domain_hit": false,
+   "domains": [],
+   "areas": 5,
+   "seconds": 128.0,
+   "case": "xd_06_multi_agent_allocation",
+   "variant": "discover",
+   "cards": [
+    "RIOT Stochastic Grouping",
+    "Opportunistic Knapsack Scheduling",
+    "Max Queue\u2011Length (M\u2011QL) Optimization",
+    "AttentionLight RL Policy",
+    "ED Arrival Forecasting Model",
+    "Hybrid DES/ABM Digital Twin Optimization",
+    "EvoDR LLM\u2011Generated Dispatch Rules",
+    "Multi\u2011Agent Deep RL Dispatching",
+    "SMDP\u2011Based Packet Admission Control",
+    "Proportionally Fair Delay\u2011Optimal Multiclass Scheduler"
+   ],
+   "errors": [
+    "GitHub API HTTP 403",
+    "OpenAlex HTTP 429",
+    "SemanticScholar HTTP 429"
+   ]
+  },
+  {
+   "mech_hit": true,
+   "mech_recall": 0.333,
+   "found": [
+    "Ant Colony Stigmergy"
+   ],
+   "domain_hit": true,
+   "domains": [
+    "Operations Research"
+   ],
+   "areas": 5,
+   "seconds": 102.0,
+   "case": "xd_06_multi_agent_allocation",
+   "variant": "discover+fp",
+   "cards": [
+    "Decentralized Task Allocation Framework",
+    "Bi-Layer Ant Colony Optimization",
+    "Stream Functions",
+    "CommHG"
+   ],
+   "errors": [
+    "OpenAlex HTTP 429",
+    "SemanticScholar HTTP 429"
+   ]
+  },
+  {
+   "mech_hit": false,
+   "mech_recall": 0.0,
+   "found": [],
+   "domain_hit": false,
+   "domains": [],
+   "areas": 0,
+   "seconds": 8.6,
+   "case": "xd_07_cheap_model_repair_budget",
+   "variant": "baseline",
+   "cards": null,
+   "errors": null
+  },
+  {
+   "mech_hit": false,
+   "mech_recall": 0.0,
+   "found": [],
+   "domain_hit": true,
+   "domains": [
+    "Clinical Trials"
+   ],
+   "areas": 5,
+   "seconds": 119.6,
+   "case": "xd_07_cheap_model_repair_budget",
+   "variant": "discover",
+   "cards": [
+    "Amortized Hyperparameter Learning (HyperMorph concept)",
+    "Response Surface Model and Convex Optimization for Hyperparameter Tuning",
+    "AI-driven Framework for High-Risk Identification",
+    "Interventional Reliability Audit (VTC-AUDIT concept)",
+    "Censored Semi-Bandits for Resource Allocation",
+    "Dynamic Pricing based Near-Optimal Resource Allocation",
+    "Efficient Adaptive Designs with Mid-Course Sample Size Adjustment",
+    "Bayesian Platform Trials (flexible arm addition/removal concept)",
+    "Optimal Variable Acceptance Sampling Plan (using Bayesian estimate)",
+    "BITKOMO (combining sampling and optimization for fast convergence)"
+   ],
+   "errors": [
+    "OpenAlex HTTP 429",
+    "SemanticScholar HTTP 429"
+   ]
+  },
+  {
+   "mech_hit": false,
+   "mech_recall": 0.0,
+   "found": [],
+   "domain_hit": true,
+   "domains": [
+    "Clinical Trials"
+   ],
+   "areas": 5,
+   "seconds": 123.8,
+   "case": "xd_07_cheap_model_repair_budget",
+   "variant": "discover+fp",
+   "cards": [
+    "Optimal Linear Contract with Random Inspections",
+    "Entangling Gate Minimization Optimizers",
+    "Dynamic Pricing Mechanism for Resource Allocation",
+    "Multi-Agent Reinforcement Learning for Resource Allocation",
+    "Phase-Adaptive LLM Framework with Multi-Stage Validation (LTAA)",
+    "Optimal Attentional Resource Allocation (Concave Utility)",
+    "Retrospective Reshuffling for Policy Evaluation",
+    "Maximum Entropy Principle for Dynamic Resource Allocation",
+    "Efficient Algorithms for Decision Tree Cross-Validation",
+    "Bias Adjustment Techniques for Validation with Incomplete Data"
+   ],
+   "errors": [
+    "OpenAlex HTTP 429",
+    "SemanticScholar HTTP 429"
+   ]
+  },
+  {
+   "mech_hit": false,
+   "mech_recall": 0.0,
+   "found": [],
+   "domain_hit": false,
+   "domains": [],
+   "areas": 0,
+   "seconds": 5.4,
+   "case": "xd_08_reward_hacking_self_mod",
+   "variant": "baseline",
+   "cards": null,
+   "errors": null
+  },
+  {
+   "mech_hit": false,
+   "mech_recall": 0.0,
+   "found": [],
+   "domain_hit": false,
+   "domains": [],
+   "areas": 5,
+   "seconds": 62.2,
+   "case": "xd_08_reward_hacking_self_mod",
+   "variant": "discover",
+   "cards": [
+    "Custom Obfuscation/De\u2011obfuscation Routine",
+    "Multi\u2011Step Malware Packing Identification Framework",
+    "ctELM \u2013 Embedding Language Model for Clinical Trials",
+    "Instrumental Variables for Disentangling Treatment Effects",
+    "Multi\u2011Sample Verification (MSV) for Co\u2011Cheating Mitigation",
+    "Secret Image Sharing with Cheating Detection"
+   ],
+   "errors": [
+    "OpenAlex HTTP 429",
+    "SemanticScholar HTTP 429"
+   ]
+  },
+  {
+   "mech_hit": false,
+   "mech_recall": 0.0,
+   "found": [],
+   "domain_hit": false,
+   "domains": [],
+   "areas": 5,
+   "seconds": 74.9,
+   "case": "xd_08_reward_hacking_self_mod",
+   "variant": "discover+fp",
+   "cards": [
+    "CLEAR",
+    "Chameleon Benchmark Overfit Detector (C-BOD)",
+    "Prototype matching",
+    "FinEvo-Bench",
+    "KinGuard"
+   ],
+   "errors": [
+    "OpenAlex HTTP 429",
+    "SemanticScholar HTTP 429"
+   ]
+  }
+ ]
+}

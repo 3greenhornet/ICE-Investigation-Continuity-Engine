@@ -1,0 +1,37 @@
+{
+ "summary": {
+  "discover+fp": {
+   "cases": 1,
+   "mech_hit_rate": 0.0,
+   "mean_mech_recall": 0.0,
+   "domain_hit_rate": 1.0,
+   "mean_areas": 5.0,
+   "mean_seconds": 181.3
+  }
+ },
+ "rows": [
+  {
+   "mech_hit": false,
+   "mech_recall": 0.0,
+   "found": [],
+   "domain_hit": true,
+   "domains": [
+    "Recommender Systems"
+   ],
+   "areas": 5,
+   "seconds": 181.3,
+   "case": "xd_01_chatbot_repetition",
+   "variant": "discover+fp",
+   "cards": [
+    "LeaDivRec",
+    "DESIRE-ME",
+    "Lexical Ratio",
+    "Feature Disentanglement Self-Balancing"
+   ],
+   "errors": [
+    "OpenAlex HTTP 429",
+    "SemanticScholar HTTP 429"
+   ]
+  }
+ ]
+}

@@ -1355,3 +1355,48 @@ async def assess_evidence_credibility(evidence_id: str) -> dict:
             ),
         },
     }
+
+
+async def reembed_evidence(case_id: Optional[str] = None, only_missing: bool = False,
+                           batch_size: int = 32) -> dict:
+    """Recompute evidence embeddings with the configured backend
+    (engine.memory.EMBEDDING_BACKEND).
+
+    Needed after switching backend (vectors from different models are not
+    comparable) and to fill rows ingested while embeddings were unavailable.
+    This rebuilds a derived index column only; it does not change evidence
+    state, so no case_events are emitted (documented in CHANGES.md).
+    """
+    import asyncio
+    import numpy as np
+
+    from engine.memory import EMBEDDING_BACKEND, embed_local_sync, embedding_backend_name
+
+    pool = await get_pool()
+    if pool is None:
+        raise DatabaseUnavailableError("no DB pool")
+    where, args = [], []
+    if case_id:
+        args.append(case_id)
+        where.append(f"case_id = ${len(args)}")
+    if only_missing:
+        where.append("embedding IS NULL")
+    sql = "SELECT evidence_id, content FROM evidence" + (" WHERE " + " AND ".join(where) if where else "")
+    async with pool.acquire() as conn:
+        rows = await conn.fetch(sql + " ORDER BY evidence_id", *args)
+    done = 0
+    for i in range(0, len(rows), batch_size):
+        chunk = rows[i:i + batch_size]
+        texts = [r["content"] or "" for r in chunk]
+        if EMBEDDING_BACKEND != "gemini":
+            vecs = await asyncio.to_thread(embed_local_sync, texts)
+        else:
+            vecs = [await embed(t) for t in texts]
+        async with pool.acquire() as conn:
+            async with conn.transaction():
+                for r, v in zip(chunk, vecs):
+                    await conn.execute("UPDATE evidence SET embedding = $1 WHERE evidence_id = $2",
+                                       np.asarray(v, dtype=np.float32), r["evidence_id"])
+        done += len(chunk)
+    return {"reembedded": done, "backend": embedding_backend_name(), "case_id": case_id,
+            "only_missing": only_missing}

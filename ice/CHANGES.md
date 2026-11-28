@@ -10,6 +10,43 @@ deviation is listed here (the fixes-doc convention).
 
 ---
 
+## Mechanisms instead of templates: structural discovery, learned routing, local models (2026-11-28, second pass)
+
+Goal of this pass: ICE should look across fields because its mechanisms make it do so, not because a prompt or keyword list tells it to.
+
+- **Structural fingerprints** (`case_engine/fingerprint.py`; adapted from Kulikowski, "Same Problem, Different Field", JCDL 2026, arXiv:2609.07595, Apache-2.0 code):
+  - The problem and every discovery source are reduced to a domain-stripped mechanism outline plus four structural facets (computation pattern, data object, inference, problem form).
+  - Sources are re-ranked by TF-IDF over the outlines plus facet agreement.
+  - Abstracts are fingerprinted in batches of 6 and cached in `data/fingerprints.json`, so repeated discoveries get cheaper.
+  - `discover(..., fingerprint=False)` is the ablation switch.
+- **Learned SEARCH router** (`case_engine/router.py`): the semantic-router pattern over ICE's local embedder.
+  - It starts from example questions for each route and learns from SEARCH actions that produced evidence.
+  - The `_WEB_CUES` regex is now only the fallback for close calls.
+  - Held-out evaluation (`benchmark/router_eval.py`): router 15/16, regex 9/16. The regex sent cross-field questions such as "how do epidemiologists model spread …" into the codebase.
+- **Research questions from fields, not lens templates** (`research._cross_domain_questions`): for the top goal, the perspectives are the fields chosen by discovery's mechanism (OpenAlex census + LLM, Thompson × DPP, pushed away from the home field).
+  - Each question is that field's own literature query.
+  - The fixed web-facing templates are dropped when this works; the repo-facing questions (code, evidence) remain.
+  - Without an LLM, the old templates are the labelled fallback.
+- **Automatic discovery on stalled goals** (`goals.maybe_schedule_auto_discovery`): two consecutive maturity checks without improvement start cross-domain discovery for that goal in the background.
+  - It needs `AUTONOMY_LEVEL >= 1` (or `ICE_AUTO_DISCOVERY=force`) and runs at most once a day per goal.
+  - It is research only: no code changes.
+- **Local embeddings** (`engine/memory.py`): `EMBEDDING_BACKEND=local` (default) uses `BAAI/bge-base-en-v1.5`, 768-d like the column.
+  - No silent cross-backend fallback, because vectors from different models are not comparable.
+  - `case_engine.evidence.reembed_evidence` and `scripts/reembed_evidence.py` rebuild the column; run on `ice_cognitive`, all 89 rows re-embedded.
+  - **Deviation from "every mutation emits one case_event":** re-embedding rewrites a derived index, not evidence state, so it emits no events.
+  - The model loads in the background at API start-up (`ICE_WARM_EMBEDDER`). API fuzzing found the first search taking more than 60 s.
+- **Local LLM fallback:**
+  - `local_llm_model()` appends the workspace Ollama model (`qwen2.5:3b`) last when it answers, with a 180 s timeout for it.
+  - `DEFAULT_FALLBACK_MODELS` is rotated against RepoIntel's chain, so the two services ask different providers at each position.
+- **Claim lifecycle** (found by RepoIntel's lifecycle audit): `POST /claims/{claim_id}/status` (ACTIVE / SUPERSEDED / RETRACTED) through `set_claim_status`, which emits the existing `claim_status_changed` event.
+- **Bugs found by API fuzzing** (Schemathesis):
+  - `GET /cases/{id}/events?after_seq=2^63` returned 500 (int4 overflow); now bounded.
+  - Also bounded: `limit` on contrastive search, and `start`/`end` on file snippets.
+- **Benchmarks:**
+  - `benchmark/cpr_eval.py`: cross-field retrieval on CPR-eval (Jung et al., arXiv:2610.25678, ODC-BY), the abstract-available subset.
+  - `benchmark/discovery_live.py`: end-to-end discovery on `cross_domain_cases.json` against the domain-locked baseline, nothing seeded from the expected answers.
+  - Results are in `benchmark/results/`.
+
 ## Recursive loop, abstract-goal checks, web filter, cross-domain discovery & Streamlit UI (2026-11-28)
 
 - **Closed ICE ↔ RepoIntel improvement loop (`LAB_PROPOSE`):**

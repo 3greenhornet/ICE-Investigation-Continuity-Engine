@@ -44,6 +44,7 @@ tiers) does not change.
 from __future__ import annotations
 
 import logging
+import os
 import re
 
 from db.connection import get_pool
@@ -212,6 +213,33 @@ async def discover_perspectives(case_id: str) -> dict:
 # ---------------------------------------------------------------------------
 
 
+async def _cross_domain_questions(goal: str, case_id: str, k: int = 3) -> list[dict]:
+    """Perspectives as FIELDS, chosen by mechanism instead of a fixed lens list:
+    the goal is restated domain-neutrally, candidate fields come from an
+    OpenAlex census plus the LLM, and Thompson sampling x DPP (pushed away
+    from the goal's home field) picks k diverse ones (case_engine.discovery).
+    Each question is the field's own literature query. [] without an LLM."""
+    import asyncio as _asyncio
+    import random as _random
+
+    from case_engine.discovery import (FieldBandit, _merge_candidates, abstract_problem,
+                                       llm_fields, openalex_field_census, select_fields)
+
+    abstract = await abstract_problem(goal, case_id)
+    if abstract.get("by") != "llm":
+        return []
+    census, fields = await _asyncio.gather(openalex_field_census(abstract["search_phrases"]),
+                                           llm_fields(abstract, case_id))
+    cands = _merge_candidates(census, fields)
+    picked = select_fields(cands, k, _random.Random(), FieldBandit(), origin_field=abstract.get("origin_field"))
+    out = []
+    for c in picked:
+        q = (c.get("query") or f"{abstract['search_phrases'][0]} {c['field']}").strip()
+        out.append({"field": c["field"], "question": f"[{c['field']}] {q}",
+                    "why": (c.get("why") or "")[:300], "abstract": abstract["abstract"]})
+    return out
+
+
 async def generate_research_questions(
     case_id: str,
     max_gaps: int = _MAX_GAPS_PER_RUN,
@@ -285,6 +313,40 @@ async def generate_research_questions(
     }
 
     created, skipped_answered, skipped_dup = [], 0, 0
+    method = "storm-lite-goal-driven" if goal_topics else "storm-lite-deterministic"
+    cross: list[dict] = []
+    if goal_topics and os.getenv("ICE_CROSS_DOMAIN_QUESTIONS", "1").lower() not in ("0", "false", "no"):
+        try:
+            cross = await _cross_domain_questions(goal_topics[0], case_id)
+        except Exception as exc:
+            logger.info("cross-domain questions unavailable: %s", exc)
+            cross = []
+    if cross:
+        method = "cross-domain-fields+repo"
+        prio = topic_priority[goal_topics[0]]
+        for item in cross:
+            if len(created) >= max_gaps:
+                break
+            if item["question"].strip().lower() in existing_gap_texts:
+                skipped_dup += 1
+                continue
+            gap = await create_gap(
+                case_id=case_id, needed_evidence=item["question"],
+                why_needed=(f"Cross-domain perspective for goal '{goal_topics[0][:120]}' "
+                            f"(restated as: {item['abstract'][:160]}). {item['why']}").strip(),
+                discriminating_hypothesis_ids=[], priority=prio,
+            )
+            created.append({"gap_id": gap.gap_id, "perspective": f"field: {item['field']}",
+                            "question": item["question"], "priority": gap.priority})
+        # The fields replace the web-facing lens templates; keep only the
+        # questions about this project's own code and evidence.
+        goal_lens_questions = {
+            "practitioner / engineering": [
+                "Where in the codebase is this implemented and what currently limits it: {t}?"],
+            "skeptical / critic": [
+                "What evidence shows the current implementation does not yet meet this goal: {t}?"],
+        }
+        selected = [p for p in selected if p["perspective"] in goal_lens_questions] or selected[:1]
     for p in selected:
         lens = p["perspective"]
         if goal_topics:
@@ -356,13 +418,14 @@ async def generate_research_questions(
             "gaps_created": [g["gap_id"] for g in created],
             "skipped_answered": skipped_answered,
             "skipped_duplicate": skipped_dup,
-            "method": "storm-lite-goal-driven" if goal_topics else "storm-lite-deterministic",
+            "method": method,
         },
     )
 
     return {
         "case_id": case_id,
-        "perspectives_considered": [p["perspective"] for p in selected],
+        "perspectives_considered": [f"field: {c['field']}" for c in cross] + [p["perspective"] for p in selected],
+        "method": method,
         "gaps_created": created,
         "skipped": {
             "already_answered": skipped_answered,

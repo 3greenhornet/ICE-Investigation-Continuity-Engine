@@ -30,7 +30,53 @@ def _coerce_embedding(value) -> Optional[List[float]]:
     return list(value)
 
 
+# Embedding backend (one per database — vectors from different models are not
+# comparable, so there is deliberately NO silent fallback between them):
+#   local  (default) sentence-transformers, BAAI/bge-base-en-v1.5, 768-d,
+#          free, offline, no quota;
+#   gemini           Google's gemini-embedding API (EMBEDDING_MODEL), 768-d.
+# Switching backend on an existing database: run scripts/reembed_evidence.py.
+EMBEDDING_BACKEND = os.getenv("EMBEDDING_BACKEND", "local").strip().lower()
+LOCAL_EMBEDDING_MODEL = os.getenv("LOCAL_EMBEDDING_MODEL", "BAAI/bge-base-en-v1.5")
+EMBEDDING_DIM = 768
+_local_model = None
+_local_lock = None
+
+
+def _get_local_model():
+    global _local_model, _local_lock
+    import threading
+
+    if _local_lock is None:
+        _local_lock = threading.Lock()
+    with _local_lock:
+        if _local_model is None:
+            from sentence_transformers import SentenceTransformer
+
+            _local_model = SentenceTransformer(LOCAL_EMBEDDING_MODEL, device="cpu")
+            dim = (getattr(_local_model, "get_embedding_dimension", None)
+                   or _local_model.get_sentence_embedding_dimension)()
+            if dim != EMBEDDING_DIM:
+                raise RuntimeError(f"{LOCAL_EMBEDDING_MODEL} has {dim} dimensions; evidence.embedding is vector(768)")
+    return _local_model
+
+
+def embed_local_sync(texts: List[str]) -> List[List[float]]:
+    model = _get_local_model()
+    vecs = model.encode([t[:8000] for t in texts], normalize_embeddings=True, batch_size=16,
+                        show_progress_bar=False)
+    return [v.astype(np.float32).tolist() for v in vecs]
+
+
+def embedding_backend_name() -> str:
+    return f"local:{LOCAL_EMBEDDING_MODEL}" if EMBEDDING_BACKEND != "gemini" else f"gemini:{EMBEDDING_MODEL}"
+
+
 async def embed(text: str) -> List[float]:
+    if EMBEDDING_BACKEND != "gemini":
+        import asyncio
+
+        return (await asyncio.to_thread(embed_local_sync, [text]))[0]
     client = get_genai_client()
     response = await client.aio.models.embed_content(
         model=EMBEDDING_MODEL,
