@@ -1,6 +1,4 @@
 """ui/screens/decision_debugger.py — Decision Debugger screen (spec §15.7)."""
-import asyncio
-
 import streamlit as st
 
 from ui import api_client
@@ -13,7 +11,7 @@ def render():
         return
 
     try:
-        decisions = asyncio.run(api_client.list_decisions(case_id))
+        decisions = api_client.run_async(api_client.list_decisions(case_id))
     except Exception as exc:
         st.error(f"Failed to load decisions: {exc}")
         return
@@ -30,7 +28,7 @@ def render():
     selected_id = labels[selected_label]
 
     try:
-        attribution = asyncio.run(api_client.get_decision_attribution(selected_id))
+        attribution = api_client.run_async(api_client.get_decision_attribution(selected_id))
     except Exception as exc:
         st.error(f"Failed to load attribution: {exc}")
         return

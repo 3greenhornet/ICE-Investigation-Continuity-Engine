@@ -20,6 +20,7 @@ mapping via _row_to_action.
 
 import logging
 import os
+import re
 import uuid
 from datetime import datetime, timezone
 from typing import Optional, Protocol
@@ -465,6 +466,13 @@ async def _generate_actions_research(case) -> list[Action]:
             priority = await compute_gap_priority(gap.gap_id)
         except Exception:
             priority = gap.priority
+        # compute_gap_priority is entropy over the hypotheses a gap
+        # discriminates and returns a flat 0.3 below two hypotheses. Research
+        # questions (STORM-lite / goal-driven) never discriminate hypotheses,
+        # so without this they could never pass the 0.4 bar below. For such
+        # gaps the stored priority (set from the goal's priority) is used.
+        if len(gap.discriminating_hypothesis_ids) < 2:
+            priority = max(priority, gap.priority)
         if priority < 0.4:
             continue
         actions.append(await create_action(
@@ -726,7 +734,7 @@ OUTCOME_UNSUPPORTED = "UNSUPPORTED"
 # Action types whose CONTRACT requires new evidence to count as progress.
 _EVIDENCE_EXPECTING_TYPES = {
     "SEARCH", "RETRIEVE", "INSPECT", "RUN_TEST", "COMPARE",
-    "FIND_COUNTEREVIDENCE",
+    "FIND_COUNTEREVIDENCE", "LAB_PROPOSE",
 }
 
 
@@ -804,21 +812,37 @@ class WebSearchExecutor:
             return ExecutionResult.empty_list(action)
         url = action.target.strip()
         if not (url.startswith("http://") or url.startswith("https://")):
-            logger.warning(
-                "SEARCH action %s has non-URL target '%s' — no real search "
-                "executor for natural-language targets (marking UNSUPPORTED)",
-                action.action_id, action.target,
-            )
+            # Natural-language target: keyless web research (DuckDuckGo +
+            # page extraction, optionally GitHub repository search).
+            from case_engine.web_research import ingest_research, web_research_enabled
+
+            if not web_research_enabled():
+                return ExecutionResult(
+                    OUTCOME_UNSUPPORTED,
+                    notes="Web research disabled (ICE_WEB_RESEARCH=0); edit the target to a URL.",
+                )
+            params = getattr(action, "result_payload", None) or {}
+            want_github = bool(params.get("include_github")) or bool(
+                re.search(r"\b(repo|repository|library|libraries|package|tool|framework|github|open[- ]source)\b",
+                          url, re.IGNORECASE))
+            from case_engine.web_research import distill_query
+
+            res = await ingest_research(action.case_id, distill_query(url),
+                                        max_results=int(params.get("max_results", 3)),
+                                        include_github=want_github, plan=True)
+            if not res["evidence_ids"]:
+                return ExecutionResult(
+                    OUTCOME_UNINFORMATIVE,
+                    notes=f"Web research found nothing usable for '{url[:80]}'"
+                          + (f" ({'; '.join(res['errors'])})" if res["errors"] else ""),
+                )
             return ExecutionResult(
-                OUTCOME_UNSUPPORTED,
-                notes=(
-                    f"Natural-language search target '{action.target[:80]}' "
-                    "has no search backend wired; edit the action target to "
-                    "an http(s) URL or configure a search provider."
-                ),
+                OUTCOME_EVIDENCE_PRODUCED,
+                evidence_ids=res["evidence_ids"],
+                notes=f"Web research ingested {len(res['evidence_ids'])} item(s) for '{url[:80]}'",
             )
 
-        scraper = os.getenv("SCRAPER", "scrapfly").lower()
+        scraper = os.getenv("SCRAPER", "local").lower()
         if scraper == "scrapfly" and not os.getenv("SCRAPFLY_API_KEY"):
             raise RuntimeError(
                 "SCRAPFLY_API_KEY is not set — cannot execute SEARCH action. "
@@ -1421,9 +1445,22 @@ class RepoIntelExecutor:
 
         params = getattr(action, "result_payload", {}) or {}
         target = action.target or ""
-        query = params.get("query") or params.get("symbol") or target
+        from case_engine.web_research import distill_query
+
+        query = params.get("query") or params.get("symbol") or distill_query(target)
         symbol = params.get("symbol")
         repo_id = params.get("repo_id")
+        if not repo_id:
+            # Cases RepoIntel opens are titled "RepoIntel: <repo>"; scope to that
+            # repository instead of searching every indexed repo.
+            try:
+                from case_engine.case import get_case
+
+                title = (await get_case(action.case_id)).title or ""
+                if title.startswith("RepoIntel: "):
+                    repo_id = title[len("RepoIntel: "):].strip() or None
+            except Exception:
+                repo_id = None
 
         if not query:
             return ExecutionResult(
@@ -1437,10 +1474,10 @@ class RepoIntelExecutor:
         # 1. Symbol-targeted analysis or caller graph
         if symbol or "callers" in target.lower() or "blast" in target.lower():
             sym_name = symbol or query
-            symbols = client.search_symbols(sym_name, limit=3)
-            callers = client.get_callers(sym_name)
+            symbols = client.search_symbols(sym_name, limit=3, repo_id=repo_id)
+            callers = client.get_callers(sym_name, repo_id=repo_id)
             callees = client.get_callees(sym_name) if hasattr(client, "get_callees") else []
-            impact = client.get_impact_radius(sym_name, max_depth=2) if hasattr(client, "get_impact_radius") else []
+            impact = client.get_impact_radius(sym_name, max_depth=2, repo_id=repo_id) if hasattr(client, "get_impact_radius") else []
             impact_cnt = len(impact) if isinstance(impact, list) else 0
 
             content = (
@@ -1457,7 +1494,7 @@ class RepoIntelExecutor:
             try:
                 source = await _create_source(
                     action.case_id,
-                    "CODE",
+                    "CODE_REPO",
                     source_uri=f"repointel://symbol/{sym_name}",
                     metadata={"action_id": action.action_id, "symbol": sym_name},
                 )
@@ -1465,13 +1502,14 @@ class RepoIntelExecutor:
                     case_id=action.case_id,
                     content=content,
                     source_id=source.source_id,
-                    evidence_type="CODE",
+                    evidence_type="TOOL_RESULT",
                     metadata={"origin": "repo_observation", "action_id": action.action_id, "symbol": sym_name},
                 )
                 evidence_ids.append(ev.evidence_id)
-            except Exception:
-                evidence_ids.append(f"ev_sim_{uuid.uuid4().hex[:8]}")
-                diagnostics["offline_fallback"] = True
+            except Exception as exc:
+                # Never invent evidence ids: a failed write is a failed action.
+                logger.warning("RepoIntel evidence ingest failed for %s: %s", action.action_id, exc)
+                diagnostics["ingest_error"] = f"{type(exc).__name__}: {exc}"[:300]
                 diagnostics["content_preview"] = content[:150]
             diagnostics.update({"symbol": sym_name, "callers_count": len(callers), "symbols_count": len(symbols)})
 
@@ -1492,7 +1530,7 @@ class RepoIntelExecutor:
             try:
                 source = await _create_source(
                     action.case_id,
-                    "CODE",
+                    "CODE_REPO",
                     source_uri=f"repointel://search/{query[:30]}",
                     metadata={"action_id": action.action_id, "query": query},
                 )
@@ -1500,22 +1538,265 @@ class RepoIntelExecutor:
                     case_id=action.case_id,
                     content=content,
                     source_id=source.source_id,
-                    evidence_type="CODE",
+                    evidence_type="TOOL_RESULT",
                     metadata={"origin": "repo_observation", "action_id": action.action_id, "hits_count": len(hits)},
                 )
                 evidence_ids.append(ev.evidence_id)
-            except Exception:
-                evidence_ids.append(f"ev_sim_{uuid.uuid4().hex[:8]}")
-                diagnostics["offline_fallback"] = True
+            except Exception as exc:
+                # Never invent evidence ids: a failed write is a failed action.
+                logger.warning("RepoIntel evidence ingest failed for %s: %s", action.action_id, exc)
+                diagnostics["ingest_error"] = f"{type(exc).__name__}: {exc}"[:300]
                 diagnostics["content_preview"] = content[:150]
             diagnostics.update({"query": query, "hits_count": len(hits)})
 
+        if not evidence_ids:
+            return ExecutionResult(
+                OUTCOME_UNINFORMATIVE,
+                notes="RepoIntel results could not be stored as evidence: "
+                      + diagnostics.get("ingest_error", "unknown error"),
+                diagnostics=diagnostics,
+            )
         return ExecutionResult(
             OUTCOME_EVIDENCE_PRODUCED,
             evidence_ids=evidence_ids,
             notes=f"RepoIntel produced {len(evidence_ids)} code evidence item(s) with origin='repo_observation'",
             diagnostics=diagnostics,
         )
+
+
+# Intent cues that a SEARCH needs knowledge from OUTSIDE the repository.
+_WEB_CUES = re.compile(
+    r"\b(latest|state[- ]of[- ]the[- ]art|sota|best practices?|alternatives?|"
+    r"compare|comparison|vs\.?|versus|benchmarks?|libraries|library|package|"
+    r"framework|tools?|open[- ]source|github|papers?|research|technique|"
+    r"recommended|industry|how do others|cve|advisory|release notes?|changelog of)\b",
+    re.IGNORECASE,
+)
+
+
+def search_scope(target: str, params: Optional[dict] = None) -> str:
+    """Decide where a natural-language SEARCH should go: "code" (RepoIntel,
+    the project's own source) or "web" (external knowledge).
+
+    An explicit params["scope"] in {"code","web"} wins. Otherwise external
+    cues ("latest", "alternatives", "library", "benchmark", ...) select web,
+    and everything else stays in the codebase. If RepoIntel's knowledge base
+    is not available at all, web is the only place to look.
+    """
+    params = params or {}
+    scope = str(params.get("scope", "")).lower()
+    if scope in ("code", "web"):
+        return scope
+    if _WEB_CUES.search(target or ""):
+        return "web"
+    try:
+        from case_engine.repointel_client import RepoIntelClient
+        if not RepoIntelClient().is_available:
+            return "web"
+    except Exception:
+        return "web"
+    return "code"
+
+
+class LabProposeExecutor:
+    """LAB_PROPOSE executor: trigger an isolated RepoIntel Improvement Lab proposal.
+
+    Security & safety invariants:
+      - Requires explicit opt-in via AUTONOMY_LEVEL >= 1 before calling the Lab.
+      - NEVER calls /apply; proposals always stay in a sandbox worktree for
+        human inspection and test verification before applying.
+      - Leaves `files` empty when not pinned so RepoIntel auto-discovers
+        relevant files via hybrid retrieval + AST call graph.
+    """
+
+    async def execute(self, action: Action) -> ExecutionResult:
+        if action.action_type != "LAB_PROPOSE":
+            return ExecutionResult.empty_list(action)
+
+        level = get_autonomy_level()
+        if level < 1:
+            return ExecutionResult(
+                OUTCOME_UNSUPPORTED,
+                notes=(
+                    "LAB_PROPOSE requires AUTONOMY_LEVEL >= 1 to submit sandbox Lab proposals "
+                    "(automatic apply is never allowed)."
+                ),
+                diagnostics={"autonomy_level": level},
+            )
+
+        from case_engine.evidence import _create_source, ingest_evidence
+        from case_engine.repointel_client import RepoIntelClient
+        import json
+
+        raw_target = (action.target or "").strip()
+        extra = getattr(action, "result_payload", {}) or {}
+        parsed: dict = {}
+        if raw_target.startswith("{"):
+            try:
+                loaded = json.loads(raw_target)
+                if isinstance(loaded, dict):
+                    parsed = loaded
+            except Exception:
+                parsed = {}
+
+        instruction = str(parsed.get("instruction") or extra.get("instruction") or raw_target).strip()
+        repo_ref = parsed.get("repo_id") or parsed.get("repo") or extra.get("repo_id") or extra.get("repo")
+        files = parsed.get("files") if parsed.get("files") is not None else extra.get("files")
+        files_list = [str(f) for f in (files or []) if str(f).strip()][:8]
+        context = str(parsed.get("context") or extra.get("context") or "").strip()[:4000]
+
+        if len(instruction) < 10:
+            return ExecutionResult(
+                OUTCOME_UNINFORMATIVE,
+                notes="LAB_PROPOSE requires an instruction of at least 10 characters.",
+                diagnostics={"instruction_len": len(instruction)},
+            )
+
+        repo_id = str(repo_ref or "").strip()
+        if not repo_id:
+            try:
+                repo_id = RepoIntelClient().resolve_repo_id() or ""
+            except Exception:
+                repo_id = ""
+
+        base_url = os.getenv("REPOINTEL_URL", "").strip().rstrip("/")
+        if not base_url or not repo_id:
+            return ExecutionResult(
+                OUTCOME_UNINFORMATIVE,
+                notes="Set REPOINTEL_URL and REPOINTEL_REPO (or repo_id) so ICE can reach RepoIntel Lab.",
+                diagnostics={"repo_id": repo_id or None, "repointel_url": base_url or None},
+            )
+
+        body = {
+            "repo_id": repo_id,
+            "instruction": instruction[:4000],
+            "files": files_list,  # [] lets RepoIntel auto-discover target files
+            "context": context,
+        }
+        try:
+            import httpx
+
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                resp = await client.post(f"{base_url}/api/v1/lab/proposals", json=body)
+            if resp.status_code not in (200, 201, 202):
+                return ExecutionResult(
+                    OUTCOME_UNINFORMATIVE,
+                    notes=f"RepoIntel Lab returned HTTP {resp.status_code}: {resp.text[:200]}",
+                    diagnostics={"status_code": resp.status_code},
+                )
+            proposal = resp.json() if resp.content else {}
+        except Exception as exc:
+            return ExecutionResult(
+                OUTCOME_UNINFORMATIVE,
+                notes=f"RepoIntel Lab request failed: {exc}"[:240],
+                diagnostics={"error": str(exc)[:240]},
+            )
+
+        pid = str(proposal.get("id") or "pending")
+        disc_files = proposal.get("files") or files_list
+        summary_text = (
+            f"[RepoIntel Lab Proposal {pid}] status={proposal.get('status', 'queued')}\n"
+            f"repo_id: {repo_id}\n"
+            f"files: {', '.join(disc_files) if disc_files else '(auto-discovery)'}\n"
+            f"instruction: {instruction}\n"
+            "note: Sandbox verification runs asynchronously; human review is required before apply."
+        )
+        src = await _create_source(
+            action.case_id,
+            "TOOL",
+            source_uri=f"repointel://{repo_id}/lab/proposals/{pid}",
+            metadata={"action_id": action.action_id, "proposal_id": pid, "repo_id": repo_id},
+        )
+        ev = await ingest_evidence(
+            case_id=action.case_id,
+            content=summary_text,
+            source_id=src.source_id,
+            evidence_type="TOOL_RESULT",
+            metadata={
+                "tool": "repointel_lab",
+                "origin": "lab_proposal_created",
+                "proposal_id": pid,
+                "repo_id": repo_id,
+                "files": disc_files,
+                "status": proposal.get("status", "queued"),
+            },
+        )
+        return ExecutionResult(
+            OUTCOME_EVIDENCE_PRODUCED,
+            evidence_ids=[ev.evidence_id],
+            notes=f"Created RepoIntel Lab proposal {pid} (human approval required to apply).",
+            diagnostics={"proposal": proposal, "proposal_id": pid, "repo_id": repo_id},
+        )
+
+
+async def research_to_lab_proposal(
+    case_id: str,
+    instruction: Optional[str] = None,
+    repo: Optional[str] = None,
+    files: Optional[list[str]] = None,
+) -> dict:
+    """Turn ICE research gaps, RepoIntel findings, or discovered mechanisms into a REVERSIBLE LAB_PROPOSE action."""
+    import json
+    from case_engine.hypothesis import list_hypotheses_for_case
+    from case_engine.information_gap import list_gaps_for_case
+    from case_engine.repointel_client import RepoIntelClient
+
+    client = RepoIntelClient(repo=repo)
+    repo_id = client.resolve_repo_id() if client.is_available else None
+
+    context_bits: list[str] = []
+    if not (instruction and instruction.strip()):
+        gaps = [g for g in await list_gaps_for_case(case_id) if g.resolved_at is None]
+        gaps.sort(key=lambda g: -float(g.priority or 0.0))
+        findings = client.get_findings(repo_id=repo_id, severity="critical", limit=3) if client.is_available else []
+        hyps = await list_hypotheses_for_case(case_id)
+
+        if findings:
+            f0 = findings[0]
+            instruction = (
+                f"Fix {f0.get('finding_type') or 'issue'} in {f0.get('file_path')}: "
+                f"{(f0.get('message') or f0.get('rule_id') or '').strip()}"
+            )
+            context_bits.append(f"Top RepoIntel finding ({f0.get('rule_id')}): {f0.get('message')}")
+        elif gaps:
+            instruction = f"Address high-priority investigation finding: {gaps[0].needed_evidence.strip()}"
+        elif hyps:
+            instruction = f"Implement verified improvement addressing hypothesis: {hyps[0].statement.strip()}"
+        else:
+            raise ValueError("No unresolved gaps, critical findings, or explicit instruction to propose a Lab edit.")
+
+        for g in gaps[:3]:
+            context_bits.append(f"Open gap (p={g.priority:.2f}): {g.needed_evidence[:180]}")
+
+    payload_target = json.dumps({
+        "instruction": instruction.strip()[:1200],
+        "repo_id": repo_id or (repo or ""),
+        "files": [str(f) for f in (files or []) if str(f).strip()][:8],
+        "context": "\n".join(context_bits)[:2500],
+    })
+    action = await create_action(
+        case_id=case_id,
+        action_type="LAB_PROPOSE",
+        target=payload_target,
+        expected_outcome="Sandbox diff passes tests, anti-Goodhart guards, and critic review without regression",
+        cost_estimate=0.25,
+        risk=0.35,
+        expected_information_gain=0.75,
+        decision_impact=0.80,
+        falsification_value=0.3,
+        approval_required=True,
+        approval_class="REVERSIBLE",
+    )
+    return {
+        "action_id": action.action_id,
+        "case_id": case_id,
+        "action_type": action.action_type,
+        "approval_class": action.approval_class,
+        "status": action.status,
+        "repo_id": repo_id,
+        "instruction": instruction.strip(),
+        "target": payload_target,
+    }
 
 
 # Module-level default executor (improvisation G: closed-world by default).
@@ -1529,6 +1810,7 @@ def default_executor_for(action: Action) -> ActionExecutor:
         SEARCH                 -> RepoIntelExecutor (code search) or WebSearchExecutor (URL)
         INSPECT                -> RepoIntelExecutor (symbols/repos) or FileInspectExecutor (file path)
         REPO_INTEL             -> RepoIntelExecutor (AST symbols, callers, blast radius)
+        LAB_PROPOSE            -> LabProposeExecutor (gated sandbox Lab proposal)
         ASK_HUMAN              -> HumanAskExecutor (records the gap)
         RETRIEVE               -> RetrieveExecutor (hybrid evidence search)
         COMPARE                -> CompareExecutor (structured comparison)
@@ -1539,8 +1821,12 @@ def default_executor_for(action: Action) -> ActionExecutor:
         REVISIT_HYPOTHESIS     -> RevisitHypothesisExecutor (recompute + induction)
     NullExecutor remains injectable for closed-world benchmark runs.
     """
+    if action.action_type == "LAB_PROPOSE":
+        return LabProposeExecutor()
+
     params = getattr(action, "result_payload", {}) or {}
     target = (action.target or "").strip()
+    is_url = target.startswith("http://") or target.startswith("https://")
 
     # Dynamic routing to RepoIntel when action relates to code investigation
     if (
@@ -1548,7 +1834,8 @@ def default_executor_for(action: Action) -> ActionExecutor:
         or params.get("target") in ("code", "repo", "ast", "symbol")
         or "repo_id" in params
         or "symbol" in params
-        or (action.action_type == "SEARCH" and target and not (target.startswith("http://") or target.startswith("https://")))
+        or (action.action_type == "SEARCH" and target and not is_url
+            and search_scope(target, params) == "code")
     ):
         return RepoIntelExecutor()
 
@@ -1563,6 +1850,7 @@ def default_executor_for(action: Action) -> ActionExecutor:
         "WAIT": WaitExecutor,
         "ABSTAIN": AbstainExecutor,
         "REVISIT_HYPOTHESIS": RevisitHypothesisExecutor,
+        "LAB_PROPOSE": LabProposeExecutor,
     }
     cls = mapping.get(action.action_type)
     return cls() if cls else NullExecutor()

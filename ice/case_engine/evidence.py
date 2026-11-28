@@ -1123,13 +1123,24 @@ async def ingest_evidence_from_url(
     Preconditions: url is a valid http(s) URL.
     Postconditions: one Source row + one or more Evidence rows.
     Raises:
-        ValueError: if SCRAPER not in {scrapfly, firecrawl}.
+        ValueError: if SCRAPER not in {local, scrapfly, firecrawl}.
     Side effects: network I/O; DB writes via _create_source + ingest_evidence.
+
+    SCRAPER=local (default when no scraper is configured) uses httpx +
+    trafilatura via case_engine.web_research: no API key, no JS rendering.
+    scrapfly / firecrawl remain available for JS-heavy or bot-protected pages.
     """
-    scraper = os.getenv("SCRAPER", "scrapfly").lower()
+    scraper = os.getenv("SCRAPER", "local").lower()
     content = ""
 
-    if scraper == "scrapfly":
+    if scraper == "local":
+        from case_engine.web_research import fetch_page_text
+
+        page = await fetch_page_text(url)
+        content = page.get("text") or ""
+        if page.get("title"):
+            metadata = {**(metadata or {}), "title": page["title"]}
+    elif scraper == "scrapfly":
         from scrapfly import ScrapflyClient, ScrapeConfig
 
         client = ScrapflyClient(key=os.getenv("SCRAPFLY_API_KEY", ""))

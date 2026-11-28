@@ -1,0 +1,75 @@
+[
+  {
+    "id": "xd_01_chatbot_repetition",
+    "title": "Chatbot keeps repeating safe user-pleasing answers instead of exploring",
+    "origin_field": "Conversational AI",
+    "problem": "Our chatbot always retrieves the highest-similarity memories and generates safe, repetitive responses that revolve around what the user already asked, failing to surface diverse useful context or explore novel angles.",
+    "expected_domains": ["Information Retrieval", "Recommender Systems", "Behavioral Ecology", "Decision Theory"],
+    "expected_mechanisms": ["Maximal Marginal Relevance", "Determinantal Point Processes", "Thompson Sampling", "Marginal Value Theorem"],
+    "expected_neutral_concepts": ["diversity", "exploration", "exploitation", "redundancy", "novelty"],
+    "reject_if_only_origin_heuristics": true
+  },
+  {
+    "id": "xd_02_flaky_ci_triage",
+    "title": "Detect intermittently failing tests without halting every commit",
+    "origin_field": "Software Testing",
+    "problem": "Tests fail non-deterministically under load; blocking merges on every failure stalls shipping, while ignoring failures lets real regressions slip into production.",
+    "expected_domains": ["Statistical Quality Control", "Biostatistics", "Signal Detection Theory"],
+    "expected_mechanisms": ["Sequential Probability Ratio Test", "CUSUM", "Kaplan-Meier Survival Analysis", "EWMA Control Chart"],
+    "expected_neutral_concepts": ["noisy binary observations", "change point", "false alarm rate", "sequential hypothesis testing"]
+  },
+  {
+    "id": "xd_03_stale_rag_memory",
+    "title": "Code knowledge cache grows stale as repository evolves unevenly",
+    "origin_field": "Retrieval-Augmented Generation",
+    "problem": "Indexed chunks and past reasoning evidence age differently: hot edited modules become obsolete immediately while core invariants remain true for months.",
+    "expected_domains": ["Cognitive Psychology", "Computer Systems", "Library Science"],
+    "expected_mechanisms": ["ACT-R Base-Level Activation", "Spaced Repetition Decay", "Adaptive Replacement Cache"],
+    "expected_neutral_concepts": ["non-stationary forgetting", "recency", "frequency", "eviction under drift"]
+  },
+  {
+    "id": "xd_04_llm_retry_cascade",
+    "title": "Free-tier LLM rate limits cause retry amplification across agents",
+    "origin_field": "Agent Orchestration",
+    "problem": "When multiple sub-tasks hit rate-limited LLM APIs simultaneously, naive retries create synchronized bursts that extend outage and waste remaining quota.",
+    "expected_domains": ["Computer Networking", "Queueing Theory", "Control Theory"],
+    "expected_mechanisms": ["AIMD Congestion Control", "Token Bucket Shaping", "Decorrelated Exponential Backoff", "Little's Law"],
+    "expected_neutral_concepts": ["shared bottleneck", "backpressure", "synchronized oscillations", "throughput collapse"]
+  },
+  {
+    "id": "xd_05_change_blast_radius",
+    "title": "Estimate risk propagation when editing an interdependent module",
+    "origin_field": "Static Analysis",
+    "problem": "Small edits in helper functions intermittently cause failures three hops away in seemingly unrelated workflows.",
+    "expected_domains": ["Epidemiology", "Power Systems Engineering", "Network Science"],
+    "expected_mechanisms": ["Percolation Threshold", "SIR Contagion Model", "Cascading Contingency N-1 Criterion", "PageRank Centrality"],
+    "expected_neutral_concepts": ["cascade", "dependency graph", "bridge nodes", "structural vulnerability"]
+  },
+  {
+    "id": "xd_06_multi_agent_allocation",
+    "title": "Assign heterogeneous coding tasks to specialized weak and strong models cleanly",
+    "origin_field": "Multi-Agent Systems",
+    "problem": "We have cheap fast models and scarce expensive models and must assign dynamic code-repair subtasks without central bottlenecks or duplicated edits.",
+    "expected_domains": ["Economics", "Entomology", "Operations Research"],
+    "expected_mechanisms": ["Vickrey-Clarke-Groves Auction", "Ant Colony Stigmergy", "Hungarian Bipartite Matching"],
+    "expected_neutral_concepts": ["heterogeneous capacity", "task allocation", "decentralized coordination", "opportunity cost"]
+  },
+  {
+    "id": "xd_07_cheap_model_repair_budget",
+    "title": "Allocate repair iterations and verification tests under tight token budget",
+    "origin_field": "Program Synthesis",
+    "problem": "Testing every candidate patch through slow full suites wastes budget, yet testing too lightly ships subtle bugs.",
+    "expected_domains": ["AutoML", "Manufacturing Inspection", "Clinical Trials"],
+    "expected_mechanisms": ["Successive Halving / Hyperband", "Multi-Fidelity Bayesian Optimization", "Group Sequential Design"],
+    "expected_neutral_concepts": ["multi-fidelity", "early stopping", "budget allocation", "sequential screening"]
+  },
+  {
+    "id": "xd_08_reward_hacking_self_mod",
+    "title": "Self-improvement loop weakens assertions or tests to report higher pass rate",
+    "origin_field": "Automated Code Repair",
+    "problem": "Automated patch generators occasionally satisfy proxy checks by deleting assertions, muting warnings, or modifying test files rather than solving the real bug.",
+    "expected_domains": ["Economics", "Robust Control", "Contract Theory"],
+    "expected_mechanisms": ["Goodhart's Law Mitigation", "Principal-Agent Moral Hazard Monitoring", "Holdout Invariant Constraints"],
+    "expected_neutral_concepts": ["proxy optimization divergence", "metric manipulation", "invariant verification", "asymmetric information"]
+  }
+]

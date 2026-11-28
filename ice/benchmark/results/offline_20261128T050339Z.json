@@ -1,0 +1,69 @@
+{
+  "cases": 5,
+  "cases_evaluated": 0,
+  "failed_cases": [
+    {
+      "case_dir": "C:\\claude.env\\intel-ice-workspace\\ICE-improved\\ice\\benchmark\\cases\\case_01_latency",
+      "error": "Circuit breaker open"
+    },
+    {
+      "case_dir": "C:\\claude.env\\intel-ice-workspace\\ICE-improved\\ice\\benchmark\\cases\\case_02_memory_leak",
+      "error": "Circuit breaker open"
+    },
+    {
+      "case_dir": "C:\\claude.env\\intel-ice-workspace\\ICE-improved\\ice\\benchmark\\cases\\case_03_auth_failure",
+      "error": "Circuit breaker open"
+    },
+    {
+      "case_dir": "C:\\claude.env\\intel-ice-workspace\\ICE-improved\\ice\\benchmark\\cases\\case_04_data_inconsistency",
+      "error": "Circuit breaker open"
+    },
+    {
+      "case_dir": "C:\\claude.env\\intel-ice-workspace\\ICE-improved\\ice\\benchmark\\cases\\case_05_deploy_loop",
+      "error": "Circuit breaker open"
+    }
+  ],
+  "hypothesis_top1_accuracy": 0.0,
+  "hypothesis_fault_class_accuracy": 0.0,
+  "hypothesis_top3_accuracy": 0.0,
+  "hypothesis_diversity": 0.0,
+  "contradiction_precision": 0.0,
+  "contradiction_recall": 0.0,
+  "decision_correctness": 0.0,
+  "calibration_error": 0.0,
+  "abstention_quality": {
+    "abstained": 0,
+    "correct_abstentions": 0,
+    "wrong_leading_abstained": 0,
+    "wrong_leading_acted": 0
+  },
+  "action_evidence_yield": 0.0,
+  "investigation_efficiency": 0.0,
+  "evidence_utilization": 0.0,
+  "evidence_trace_coverage": 0.0,
+  "mean_latency_seconds": 0.0,
+  "legacy_hypothesis_ranking_accuracy": 0.0,
+  "legacy_decision_accuracy": 0.0,
+  "per_case": [
+    {
+      "case_dir": "C:\\claude.env\\intel-ice-workspace\\ICE-improved\\ice\\benchmark\\cases\\case_01_latency",
+      "error": "Circuit breaker open"
+    },
+    {
+      "case_dir": "C:\\claude.env\\intel-ice-workspace\\ICE-improved\\ice\\benchmark\\cases\\case_02_memory_leak",
+      "error": "Circuit breaker open"
+    },
+    {
+      "case_dir": "C:\\claude.env\\intel-ice-workspace\\ICE-improved\\ice\\benchmark\\cases\\case_03_auth_failure",
+      "error": "Circuit breaker open"
+    },
+    {
+      "case_dir": "C:\\claude.env\\intel-ice-workspace\\ICE-improved\\ice\\benchmark\\cases\\case_04_data_inconsistency",
+      "error": "Circuit breaker open"
+    },
+    {
+      "case_dir": "C:\\claude.env\\intel-ice-workspace\\ICE-improved\\ice\\benchmark\\cases\\case_05_deploy_loop",
+      "error": "Circuit breaker open"
+    }
+  ]
+}

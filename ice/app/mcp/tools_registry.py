@@ -107,14 +107,22 @@ async def ice_create_goal(
     clarity_level: int = 1,
     origin: str = "developer_statement",
     supersedes: Optional[str] = None,
+    priority: Optional[int] = None,
+    success_criteria: Optional[str] = None,
+    tags: Optional[List[str]] = None,
+    target_date: Optional[str] = None,
 ) -> Dict[str, Any]:
-    """Record a goal, subgoal, invariant, constraint, or assumption in the Evolving Project Model.
+    """Record an intent node in the Evolving Project Model.
 
-    Clarity levels:
-      1: Intuitive / vague intention
-      2: Observable success criteria
-      3: Bound to codebase components
-      4: Formal test / invariant specification
+    kind: goal, need, actor, scenario, requirement, quality_objective,
+          constraint, assumption, decision, alternative, risk,
+          open_question, milestone.
+    Clarity levels (case_engine.goals.CLARITY_LEVELS):
+      1: exploratory / vague intention
+      2: emerging direction
+      3: partially specified project
+      4: defined engineering objective
+    Optional: priority 1 (highest)..5, success_criteria, tags, target_date (ISO).
     """
     from case_engine.goals import create_goal as _cg
     return await _cg(
@@ -124,7 +132,40 @@ async def ice_create_goal(
         clarity_level=clarity_level,
         origin=origin,
         supersedes=supersedes,
+        priority=priority,
+        success_criteria=success_criteria,
+        tags=tags,
+        target_date=target_date,
     )
+
+
+@_safe
+async def ice_revise_goal(
+    goal_id: str,
+    statement: Optional[str] = None,
+    clarity_level: Optional[int] = None,
+    priority: Optional[int] = None,
+    success_criteria: Optional[str] = None,
+    tags: Optional[List[str]] = None,
+    target_date: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Create a new version of a goal with the given fields changed; the old
+    version is superseded (kept, crossed out), never edited in place."""
+    from case_engine.goals import revise_goal
+    changes = {k: v for k, v in {
+        "statement": statement, "clarity_level": clarity_level, "priority": priority,
+        "success_criteria": success_criteria, "tags": tags, "target_date": target_date,
+    }.items() if v is not None}
+    return await revise_goal(goal_id, **changes)
+
+
+@_safe
+async def ice_sync_goal_maturity(goal_id: str, repo: Optional[str] = None) -> Dict[str, Any]:
+    """Assess how far a goal is implemented from RepoIntel's code graph (repo =
+    RepoIntel repository name or id), ingest the observation as evidence and
+    record an evidence-backed maturity step for the goal."""
+    from case_engine.goals import sync_maturity_from_code
+    return await sync_maturity_from_code(goal_id, repo=repo)
 
 
 @_safe
@@ -338,23 +379,120 @@ async def ice_research_brief(case_id: str, max_gaps: int = 6) -> Dict[str, Any]:
     return await _rb(case_id, max_gaps=max_gaps)
 
 
-@_safe
-async def ice_suggest_next(case_id: str) -> Dict[str, Any]:
-    """Use the Serendipity Engine (DPP diversity + bandit exploration) to suggest diverse next items."""
+def _serendipity_engine(items, seed=None):
+    """Engine over a case's goals/gaps with a persistent store, so bandit
+    feedback (ice_suggest_feedback) survives across calls and processes.
+    Store: ICE_SERENDIPITY_STORE or <ice>/data/serendipity_store.sqlite."""
     _ICE_DIR = Path(__file__).resolve().parents[2]
     _SE_DIR = _ICE_DIR / "serendipity-engine"
     if str(_SE_DIR) not in sys.path:
         sys.path.insert(0, str(_SE_DIR))
-    from ice_adapter.adapter import IceSerendipityAdapter
-    from case_engine.goals import list_goals
+    from serendipity import SerendipityConfig, SerendipityEngine
 
-    active_goals = await list_goals(case_id, include_superseded=False)
-    items = IceSerendipityAdapter.goals_to_items(active_goals)
-    suggestions = [
-        {"id": it.id, "title": it.title, "category": it.category, "quality": it.quality}
-        for it in items[:6]
-    ]
-    return {"case_id": case_id, "diverse_suggestions": suggestions}
+    store = os.getenv("ICE_SERENDIPITY_STORE") or str(_ICE_DIR / "data" / "serendipity_store.sqlite")
+    Path(store).parent.mkdir(parents=True, exist_ok=True)
+    cfg = SerendipityConfig(
+        diversity_method=os.getenv("ICE_SERENDIPITY_DIVERSITY", "dpp"),
+        policy=os.getenv("ICE_SERENDIPITY_POLICY", "thompson"),
+        store_path=store,
+        seed=seed,
+    )
+    return SerendipityEngine(config=cfg, items=items)
+
+
+@_safe
+async def ice_suggest_next(case_id: str, n: int = 5, context: str = "") -> Dict[str, Any]:
+    """Serendipity Engine over the case's active goals and open information gaps:
+    a 4-slot router (exploit / adjacent / uncertainty / entropy), Thompson-sampling
+    exploration and DPP set diversity. Each suggestion carries a token; report the
+    developer's reaction with ice_suggest_feedback so the bandit learns."""
+    _ICE_DIR = Path(__file__).resolve().parents[2]
+    _SE_DIR = _ICE_DIR / "serendipity-engine"
+    if str(_SE_DIR) not in sys.path:
+        sys.path.insert(0, str(_SE_DIR))
+    from ice_adapter.adapter import IceSerendipityAdapter, question_tags
+    from case_engine.goals import list_goals
+    from case_engine.information_gap import list_gaps_for_case
+
+    goals = await list_goals(case_id, include_superseded=False)
+    gaps = await list_gaps_for_case(case_id)
+    items = IceSerendipityAdapter.goals_to_items(goals)
+    gap_items = IceSerendipityAdapter.research_questions_to_items([
+        {"gap_id": g.gap_id, "question": g.needed_evidence, "perspective": "gap"} for g in gaps
+    ])
+    for it, g in zip(gap_items, gaps):
+        it.quality = max(0.2, min(1.0, float(g.priority)))
+    items.extend(gap_items)
+    if not items:
+        return {"case_id": case_id, "diverse_suggestions": [],
+                "note": "Case has no active goals or open gaps yet."}
+
+    engine = _serendipity_engine(items)
+    try:
+        out = engine.suggest(case_id, n=max(1, min(int(n), 20)),
+                             context_tags=question_tags(context) if context else ())
+        suggestions = [{
+            "token": s.token, "id": s.item.id, "title": s.item.title,
+            "category": s.item.category, "slot": s.slot, "reason": s.reason,
+            "quality": s.item.quality,
+            "scores": {k: (None if v in (float("inf"), float("-inf")) else round(v, 4))
+                       for k, v in s.scores.items()},
+        } for s in out]
+    finally:
+        engine.close()
+    return {
+        "case_id": case_id,
+        "diverse_suggestions": suggestions,
+        "pool": {"goals": len(goals), "gaps": len(gaps)},
+        "method": {"diversity": engine.cfg.diversity_method, "exploration": engine.cfg.policy},
+    }
+
+
+@_safe
+async def ice_web_research(case_id: str = "", query: str = "", max_results: int = 3,
+                           include_github: bool = False) -> Dict[str, Any]:
+    """Keyless web research (DuckDuckGo + page text extraction, optional GitHub
+    repository search). With a case_id the results are ingested as evidence;
+    without one they are only returned."""
+    from case_engine.web_research import ingest_research, research
+
+    if case_id:
+        return await ingest_research(case_id, query, max_results=max_results,
+                                     include_github=include_github)
+    return await research(query, max_results=max_results, include_github=include_github)
+
+
+@_safe
+async def ice_discover(problem: str, case_id: str = "", n_fields: int = 5, repo: str = "") -> Dict[str, Any]:
+    """Cross-domain mechanism discovery: restate the problem domain-neutrally,
+    pick diverse fields (OpenAlex census + LLM, Thompson x DPP, pushed away from
+    the problem's home field), extract mechanism cards that cite real papers,
+    attach GitHub implementations and RepoIntel matches. With a case_id the
+    cards become case evidence; all are catalogued in mechanism_lab."""
+    from case_engine.discovery import discover
+
+    return await discover(problem, case_id=case_id or None, n_fields=n_fields, repo=repo or None)
+
+
+@_safe
+async def ice_discovery_decision(mechanism_id: str, decision: str, note: str = "") -> Dict[str, Any]:
+    """Record reuse | adapt | reject | defer | revisit for a discovered
+    mechanism; reuse/adapt/reject train which fields get explored next."""
+    from case_engine.discovery import decide_mechanism
+
+    return await decide_mechanism(mechanism_id, decision, note)
+
+
+@_safe
+async def ice_suggest_feedback(token: str, signal: str = "engaged") -> Dict[str, Any]:
+    """Record the developer's reaction to an ice_suggest_next suggestion
+    (signal: engaged | ignored | negative). Updates the Beta posterior for that
+    item and slot, which shifts future exploration."""
+    engine = _serendipity_engine([])
+    try:
+        return engine.record(token, signal)
+    finally:
+        engine.close()
 
 
 # ======================================================================
@@ -1009,6 +1147,8 @@ TOOLS: Dict[str, Dict[str, Any]] = {
     # 2. Goals & Project Model
     "ice_create_goal": {"fn": ice_create_goal, "desc": "Record a goal, subgoal, invariant, or constraint with clarity level 1-4"},
     "ice_list_goals": {"fn": ice_list_goals, "desc": "List goals, invariants, and milestones for a case"},
+    "ice_revise_goal": {"fn": ice_revise_goal, "desc": "New version of a goal with changed statement/clarity/priority/tags (old one superseded)"},
+    "ice_sync_goal_maturity": {"fn": ice_sync_goal_maturity, "desc": "Evidence-backed goal maturity from RepoIntel's code graph for a given repository"},
     "ice_reconcile_goals": {"fn": ice_reconcile_goals, "desc": "Reconcile goals against evidence to find completed or diverged goals"},
     "ice_intent_profile": {"fn": ice_intent_profile, "desc": "Get distribution of 13 intent kinds and clarity levels"},
     "ice_verify_code_maturity": {"fn": ice_verify_code_maturity, "desc": "Verify whether code implementing a goal exists on the maturity ladder"},
@@ -1029,7 +1169,11 @@ TOOLS: Dict[str, Dict[str, Any]] = {
 
     # 6. Research & Serendipity
     "ice_research_brief": {"fn": ice_research_brief, "desc": "Generate STORM-lite multi-perspective research brief and gaps"},
-    "ice_suggest_next": {"fn": ice_suggest_next, "desc": "Serendipity Engine DPP diversity and bandit suggestions"},
+    "ice_suggest_next": {"fn": ice_suggest_next, "desc": "Serendipity Engine over goals + open gaps: DPP set diversity, Thompson exploration, 4-slot router"},
+    "ice_web_research": {"fn": ice_web_research, "desc": "Search the web / GitHub (no API key) and optionally ingest results into a case as evidence"},
+    "ice_discover": {"fn": ice_discover, "desc": "Cross-domain mechanism discovery: neutral restatement, diverse fields, source-cited mechanism cards with GitHub implementations"},
+    "ice_discovery_decision": {"fn": ice_discovery_decision, "desc": "Record reuse/adapt/reject for a discovered mechanism (trains field exploration)"},
+    "ice_suggest_feedback": {"fn": ice_suggest_feedback, "desc": "Report engaged/ignored/negative for an ice_suggest_next token so the bandit learns"},
 
     # 7. Retrieval
     "search_evidence": {"fn": search_evidence, "desc": "Hybrid search over ICE evidence (vector + lexical + RRF)"},

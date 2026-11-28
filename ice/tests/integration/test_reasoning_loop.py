@@ -17,7 +17,41 @@ from case_engine.evidence import (
 )
 from case_engine.claim import extract_claims
 from case_engine.hypothesis import create_hypothesis
+from case_engine import claim as claim_mod
 from case_engine import llm as llm_mod
+from case_engine.exceptions import LLMUnavailableError
+
+
+_LLM_ENV_KEYS = (
+    "GEMINI_API_KEY",
+    "GOOGLE_API_KEY",
+    "OPENAI_API_KEY",
+    "ANTHROPIC_API_KEY",
+    "GROQ_API_KEY",
+    "ZAI_API_KEY",
+    "MISTRAL_API_KEY",
+    "OPENROUTER_API_KEY",
+)
+
+
+@pytest.fixture(autouse=True)
+def _offline_llm_env(monkeypatch):
+    """Pin test_reasoning_loop to offline deterministic execution regardless of .env."""
+    for key in _LLM_ENV_KEYS:
+        monkeypatch.delenv(key, raising=False)
+    monkeypatch.setattr(llm_mod, "llm_available", lambda: False)
+
+    async def _raise_unavailable(*_args, **_kwargs):
+        raise LLMUnavailableError("Offline integration test mode")
+
+    monkeypatch.setattr(llm_mod, "_call_llm_json", _raise_unavailable)
+    monkeypatch.setattr(claim_mod, "_call_llm_json", _raise_unavailable)
+    from case_engine import retrieval as retrieval_mod
+
+    async def _no_embed(_query: str):
+        return None
+
+    monkeypatch.setattr(retrieval_mod, "_embed_query", _no_embed)
 
 
 async def _seed_case_with_evidence(title="Induction case"):

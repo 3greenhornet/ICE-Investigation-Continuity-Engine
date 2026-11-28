@@ -50,6 +50,23 @@ class GoalCreateRequest(BaseModel):
     origin: str = "developer_statement"
     rationale: Optional[str] = None
     supersedes: Optional[str] = None
+    priority: Optional[int] = None
+    success_criteria: Optional[str] = None
+    tags: Optional[list[str]] = None
+    target_date: Optional[str] = None  # ISO date
+    metadata: Optional[dict] = None
+
+
+class GoalReviseRequest(BaseModel):
+    statement: Optional[str] = None
+    kind: Optional[str] = None
+    clarity_level: Optional[int] = None
+    rationale: Optional[str] = None
+    priority: Optional[int] = None
+    success_criteria: Optional[str] = None
+    tags: Optional[list[str]] = None
+    target_date: Optional[str] = None
+    metadata: Optional[dict] = None
 
 
 class GoalStatusRequest(BaseModel):
@@ -96,7 +113,29 @@ async def create_goal_route(case_id: str, payload: GoalCreateRequest):
         origin=payload.origin,
         rationale=payload.rationale,
         supersedes=payload.supersedes,
+        priority=payload.priority,
+        success_criteria=payload.success_criteria,
+        tags=payload.tags,
+        target_date=payload.target_date,
+        metadata=payload.metadata,
     )
+
+
+@router.post("/goals/{goal_id}/revise")
+async def revise_goal_route(goal_id: str, payload: GoalReviseRequest):
+    """New version of a goal with the given fields changed (old one superseded)."""
+    from case_engine.goals import revise_goal
+
+    changes = {k: v for k, v in payload.model_dump().items() if v is not None}
+    return await revise_goal(goal_id, **changes)
+
+
+@router.post("/goals/{goal_id}/maturity/sync")
+async def sync_goal_maturity_route(goal_id: str, repo: Optional[str] = Query(None)):
+    """Evidence-backed maturity from RepoIntel's knowledge base (repo = name or id)."""
+    from case_engine.goals import sync_maturity_from_code
+
+    return await sync_maturity_from_code(goal_id, repo=repo)
 
 
 @router.get("/cases/{case_id}/goals")
@@ -206,6 +245,17 @@ async def decompose_goal_route(goal_id: str):
     from case_engine.goals import decompose_goal
 
     return await decompose_goal(goal_id)
+
+
+@router.post("/cases/{case_id}/goals/adjacent-proposals")
+async def adjacent_goals_route(
+    case_id: str,
+    repo: Optional[str] = Query(None),
+    max_proposals: int = Query(4, ge=1, le=8),
+):
+    from case_engine.goals import propose_adjacent_goals
+
+    return await propose_adjacent_goals(case_id, repo=repo, max_proposals=max_proposals)
 
 
 @router.get("/cases/{case_id}/intent-profile")

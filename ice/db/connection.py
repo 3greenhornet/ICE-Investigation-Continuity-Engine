@@ -1,4 +1,5 @@
 # hari/db/connection.py
+import logging
 import os
 import asyncpg
 from typing import Optional
@@ -6,12 +7,17 @@ from pgvector.asyncpg import register_vector
 
 _pool: Optional[asyncpg.Pool] = None
 
+# logging instead of emoji print(): print() of non-cp1252 characters raises
+# UnicodeEncodeError on Windows when stdout is a pipe/file, which aborted
+# the FastAPI lifespan before the server could start.
+logger = logging.getLogger("ice.db")
+
 
 async def init_db():
     global _pool
     dsn = os.getenv("DATABASE_URL")
     if not dsn:
-        print("⚠️ DATABASE_URL not set – running without database")
+        logger.warning("DATABASE_URL not set - running without database")
         return
     try:
         if _pool is None:
@@ -27,12 +33,13 @@ async def init_db():
 
             _pool = await asyncpg.create_pool(
                 dsn,
-                min_size=1,
-                max_size=5,
+                # Pool size is configurable for load: DB_POOL_MIN / DB_POOL_MAX.
+                min_size=int(os.getenv("DB_POOL_MIN", "1")),
+                max_size=int(os.getenv("DB_POOL_MAX", "10")),
                 init=register_vector,
                 server_settings={"search_path": "public"}
             )
-            print("✅ Database pool connected successfully")
+            logger.info("Database pool connected")
 
         # Verify the memories table is visible to this connection.
         async with _pool.acquire() as conn:
@@ -45,7 +52,7 @@ async def init_db():
             """)
 
             if not table_exists:
-                print("⚠️ Table 'memories' not found! Initializing schema inline...")
+                logger.warning("Table 'memories' not found; initializing schema inline")
                 await conn.execute("""
                     CREATE TABLE IF NOT EXISTS memories (
                         id TEXT PRIMARY KEY,
@@ -67,12 +74,12 @@ async def init_db():
                         promoted_to_hypothesis BOOLEAN DEFAULT FALSE
                     );
                 """)
-                print("✅ Table 'memories' stabilized.")
+                logger.info("Table 'memories' created")
             else:
-                print("✅ Verified: 'memories' table found and active.")
+                logger.info("'memories' table present")
 
     except Exception as e:
-        print(f"❌ Database initialization failed structurally: {e}")
+        logger.error("Database initialization failed: %s", e)
         _pool = None
 
 

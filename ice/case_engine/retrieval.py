@@ -162,6 +162,9 @@ async def _embed_query(query: str) -> Optional[list[float]]:
         return None
 
 
+MIN_VECTOR_SIMILARITY = 0.58
+
+
 async def search_evidence(
     query: str,
     case_id: Optional[str] = None,
@@ -169,6 +172,7 @@ async def search_evidence(
     limit: int = 10,
     valid_at: Optional[datetime] = None,
     include_stale: bool = False,
+    min_similarity: Optional[float] = None,
 ) -> list[RetrievalHit]:
     """Hybrid search over ACTIVE evidence rows.
 
@@ -211,23 +215,30 @@ async def search_evidence(
     # `where` already used $1 for the case filter, silently breaking both
     # channels whenever a case filter was active.
     vector_ranking: list[str] = []
+    vector_similarity: dict[str, float] = {}
+    sim_floor = MIN_VECTOR_SIMILARITY if min_similarity is None else float(min_similarity)
     embedding = await _embed_query(query)
     if embedding is not None:
         try:
             async with pool.acquire() as conn:
-                vparams = params + [embedding, max(limit * 3, 20)]
+                vparams = params + [embedding, sim_floor, max(limit * 3, 20)]
                 rows = await conn.fetch(
                     f"""
-                    SELECT e.evidence_id
+                    SELECT e.evidence_id,
+                           (1.0 - (e.embedding <=> ${len(params) + 1}::vector)) AS similarity
                     FROM evidence e
                     WHERE {where}
                       AND e.embedding IS NOT NULL
+                      AND (1.0 - (e.embedding <=> ${len(params) + 1}::vector)) >= ${len(params) + 2}
                     ORDER BY e.embedding <=> ${len(params) + 1}::vector
-                    LIMIT ${len(params) + 2}
+                    LIMIT ${len(params) + 3}
                     """,
                     *vparams,
                 )
             vector_ranking = [r["evidence_id"] for r in rows]
+            vector_similarity = {
+                r["evidence_id"]: float(r["similarity"]) for r in rows if r["similarity"] is not None
+            }
         except Exception as exc:
             logger.debug("vector channel failed: %s", exc)
 
@@ -331,6 +342,11 @@ async def search_evidence(
                         "fused_rrf": round(score, 5),
                         "lexical_coverage": round(
                             _lexical_score(query_terms, row["content"]), 3
+                        ),
+                        **(
+                            {"vector_similarity": round(vector_similarity[item_id], 4)}
+                            if item_id in vector_similarity
+                            else {}
                         ),
                     },
                 )

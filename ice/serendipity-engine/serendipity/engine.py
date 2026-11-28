@@ -21,6 +21,7 @@ from .diversity import (
     default_similarity,
     intralist_diversity,
     mmr_select,
+    dpp_select,
     reroll_needed,
     tag_jaccard,
 )
@@ -232,12 +233,21 @@ class SerendipityEngine:
             ), reason)
             for iid, score, reason in ranked
         ]
-        # MMR ordering for this pool (research formula; lambda dial)
+        # Diversity ordering for this pool (lambda dial). DPP additionally
+        # conditions on the items already picked for this batch.
         relevance = {iid: sc for iid, sc, _r in ranked}
-        ordered = mmr_select(
-            [iid for iid, _sc, _r in ranked], relevance,
-            self._similarity_fn, k=len(ranked), lambda_mult=self.cfg.mmr_lambda,
-        )
+        if self.cfg.diversity_method == "dpp":
+            ordered = dpp_select(
+                [iid for iid, _sc, _r in ranked], relevance,
+                self._similarity_fn, k=len(ranked), lambda_mult=self.cfg.mmr_lambda,
+                preselected=[p.id for p in already_picked],
+                max_pool=self.cfg.dpp_max_pool,
+            )
+        else:
+            ordered = mmr_select(
+                [iid for iid, _sc, _r in ranked], relevance,
+                self._similarity_fn, k=len(ranked), lambda_mult=self.cfg.mmr_lambda,
+            )
         deferred_rerolls = []
         for iid in ordered:
             item = self._items[iid]

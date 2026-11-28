@@ -250,16 +250,59 @@ async def generate_research_questions(
     objective = disc.get("objective") or disc.get("title") or "this case"
     obj_tokens = _tokens(objective)
 
+    # Goal-driven questions (CHANGES.md "Goal-driven research"): when the case
+    # has active goals, ask about the highest-priority ones instead of the
+    # case objective. The external-knowledge phrasing ("techniques, libraries,
+    # best practices", "benchmarks") is deliberate: SEARCH actions built from
+    # these gaps route to web research, the codebase-phrased ones to RepoIntel.
+    from case_engine.goals import list_goals
+
+    goals = [g for g in await list_goals(case_id, include_superseded=False)
+             if g["status"] in ("active", "exploring")
+             and g["kind"] in ("goal", "requirement", "quality_objective", "milestone", "need")]
+    goals.sort(key=lambda g: (g.get("priority") or 9, -int(g["clarity_level"])))
+    goal_topics = [g["statement"].rstrip(".") for g in goals[:2]]
+    # P1 -> 0.8 ... P5 -> 0.4; unprioritised goals 0.5
+    topic_priority = {g["statement"].rstrip("."): (0.9 - 0.1 * g["priority"]) if g.get("priority") else 0.5
+                      for g in goals[:2]}
+    goal_lens_questions = {
+        "practitioner / engineering": [
+            "What techniques, libraries or tools best achieve this goal (latest best practices and alternatives): {t}?",
+            "Where in the codebase is this implemented and what currently limits it: {t}?",
+        ],
+        "skeptical / critic": [
+            "What evidence shows the current implementation does not yet meet this goal: {t}?",
+        ],
+        "scalability / failure-mode": [
+            "What benchmarks or failure modes are known for approaches to this goal: {t}?",
+        ],
+        "historical / prior-art": [
+            "What prior-art open-source projects or papers already solve this goal: {t}?",
+        ],
+        "stakeholder / user-impact": [
+            "Who is affected if this goal is not met, and how would they notice: {t}?",
+        ],
+    }
+
     created, skipped_answered, skipped_dup = [], 0, 0
     for p in selected:
         lens = p["perspective"]
-        questions = [
-            f"From the {lens} perspective: what is the current evidence "
-            f"about {objective} NOT able to tell us?",
-            f"From the {lens} perspective: what would an expert in this "
-            f"lens ask first about {objective}?",
-        ]
-        for q in questions:
+        if goal_topics:
+            questions = [
+                (q.format(t=t), topic_priority[t])
+                for t in goal_topics
+                for q in goal_lens_questions.get(lens, [
+                    "What would an expert in this lens ask first about this goal: {t}?"])
+            ]
+        else:
+            base = 0.4 if p["status"] == "unexplored" else 0.3
+            questions = [
+                (f"From the {lens} perspective: what is the current evidence "
+                 f"about {objective} NOT able to tell us?", base),
+                (f"From the {lens} perspective: what would an expert in this "
+                 f"lens ask first about {objective}?", base),
+            ]
+        for q, q_priority in questions:
             if len(created) >= max_gaps:
                 break
             q_tokens = _tokens(q)
@@ -293,7 +336,7 @@ async def generate_research_questions(
                     f"claims — evidence does not currently answer this."
                 ),
                 discriminating_hypothesis_ids=[],
-                priority=0.4 if p["status"] == "unexplored" else 0.3,
+                priority=q_priority,
             )
             created.append(
                 {
@@ -313,7 +356,7 @@ async def generate_research_questions(
             "gaps_created": [g["gap_id"] for g in created],
             "skipped_answered": skipped_answered,
             "skipped_duplicate": skipped_dup,
-            "method": "storm-lite-deterministic",
+            "method": "storm-lite-goal-driven" if goal_topics else "storm-lite-deterministic",
         },
     )
 

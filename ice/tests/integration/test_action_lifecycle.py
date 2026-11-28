@@ -234,7 +234,9 @@ async def test_execute_search_action_scraper_key_skip_guard(db_pool, monkeypatch
     """SEARCH on a URL target without a scraper key fails loudly (Part 2 §4.3)."""
     monkeypatch.delenv("SCRAPFLY_API_KEY", raising=False)
     monkeypatch.delenv("FIRECRAWL_API_KEY", raising=False)
-    monkeypatch.delenv("SCRAPER", raising=False)  # default backend: scrapfly
+    # The default backend is now the keyless "local" scraper; the key guard
+    # still applies whenever a paid backend is selected explicitly.
+    monkeypatch.setenv("SCRAPER", "scrapfly")
 
     case = await create_case("Action case", "objective")
     action = await create_action(
@@ -266,6 +268,12 @@ async def test_execute_search_action_non_url_target_noop(db_pool, monkeypatch):
     improvements pass, P1 outcome semantics)."""
     monkeypatch.delenv("SCRAPFLY_API_KEY", raising=False)
     monkeypatch.delenv("FIRECRAWL_API_KEY", raising=False)
+    # No backend at all: no RepoIntel knowledge base and web research off.
+    # (Natural-language SEARCH now routes to RepoIntel code search or keyless
+    # web research when either is available.)
+    import case_engine.repointel_client as rc
+    monkeypatch.setattr(rc.RepoIntelClient, "is_available", property(lambda self: False))
+    monkeypatch.setenv("ICE_WEB_RESEARCH", "0")
 
     case = await create_case("Action case", "objective")
     action = await create_action(
@@ -279,7 +287,7 @@ async def test_execute_search_action_non_url_target_noop(db_pool, monkeypatch):
 
 @pytest.mark.integration
 @pytest.mark.asyncio
-async def test_execute_compare_produces_derived_evidence(db_pool):
+async def test_execute_compare_produces_derived_evidence(db_pool, monkeypatch):
     """Hari ICE fix pass regression: the COMPARE executor previously
     crashed on ingest_evidence() missing 'source_id' — a TypeError that
     only appeared when a COMPARE action was actually EXECUTED (the
@@ -292,8 +300,32 @@ async def test_execute_compare_produces_derived_evidence(db_pool):
     record with its own TOOL source, outcome EVIDENCE_PRODUCED.
     """
     import uuid
+    from case_engine import claim as claim_mod
 
     tok = "cmp" + uuid.uuid4().hex[:10]
+
+    async def _mock_extract(*_args, **_kwargs):
+        return {
+            "claims": [
+                {
+                    "statement": f"{tok}: first report says latency spiked at 10:00 UTC.",
+                    "claim_type": "TEMPORAL_ASSOCIATION",
+                    "scope": None,
+                    "valid_from": "2026-01-01T10:00:00+00:00",
+                    "valid_until": "2026-01-01T10:05:00+00:00",
+                },
+                {
+                    "statement": f"{tok}: second report says latency was flat until 12:00 UTC.",
+                    "claim_type": "TEMPORAL_ASSOCIATION",
+                    "scope": None,
+                    "valid_from": "2026-01-01T11:30:00+00:00",
+                    "valid_until": "2026-01-01T12:00:00+00:00",
+                },
+            ]
+        }
+
+    monkeypatch.setattr(claim_mod, "_call_llm_json", _mock_extract)
+
     case = await create_case("Compare case", "objective")
     src = await _create_source(case.case_id, "LOG_FILE", None)
     ev = await ingest_evidence(

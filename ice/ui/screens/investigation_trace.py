@@ -1,7 +1,4 @@
 """ui/screens/investigation_trace.py — Investigation Trace screen (spec §15.6)."""
-import asyncio
-from collections import Counter
-
 import streamlit as st
 
 from ui import api_client
@@ -15,6 +12,8 @@ EVENT_FILTERS = [
     "hypothesis_version_created",
     "contradiction_detected",
     "decision_made",
+    "goal_created",
+    "goal_maturity_assessed",
 ]
 
 
@@ -27,7 +26,7 @@ def render():
     filter_choice = st.selectbox("Event type", EVENT_FILTERS)
     st.session_state["trace_filter"] = filter_choice
     try:
-        events = asyncio.run(api_client.list_events(case_id, limit=200))
+        events = api_client.run_async(api_client.list_events(case_id, limit=200))
     except Exception as exc:
         st.error(f"Failed to load events: {exc}")
         return

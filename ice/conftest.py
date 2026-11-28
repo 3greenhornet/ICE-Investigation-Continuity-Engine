@@ -86,6 +86,8 @@ _ICE_MIGRATIONS_IDEMPOTENT = [
     "db/migrations/019_plan_and_workspace.sql",
     "db/migrations/020_llm_ledger_and_mechanism_lab.sql",
     "db/migrations/021_project_goals.sql",
+    "db/migrations/022_goal_attributes.sql",
+    "db/migrations/023_lab_propose_action.sql",
 ]
 _schema_ready = False
 

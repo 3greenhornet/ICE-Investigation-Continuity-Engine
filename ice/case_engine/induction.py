@@ -298,6 +298,14 @@ def _stem(token: str) -> str:
     return t
 
 
+# Words that carry no case-specific meaning in "case focus: ..." grounding.
+_FOCUS_STOP = {
+    "and", "for", "the", "with", "from", "into", "that", "this", "find", "code",
+    "track", "investig", "investigate", "report", "reported", "finding", "repository",
+    "intel", "repointel", "case", "issue", "problem", "system", "project",
+}
+
+
 def _claim_tokens(statement: str) -> set[str]:
     return {
         _stem(t)
@@ -341,7 +349,9 @@ def _deterministic_candidates(claims: list[dict], objective: str) -> list[Hypoth
         # pool queue latency; case focus: checkout service p95)" is an
         # explanation an investigator can act on. This grounding is what
         # the audit meant by "concrete names, dates, figures".
-        objective_terms = sorted(_claim_tokens(objective))[:4]
+        objective_terms = sorted(
+            (t for t in _claim_tokens(objective) if len(t) > 3 and t not in _FOCUS_STOP),
+            key=lambda t: (-len(t), t))[:4]
         grounding = (
             f" (observed signals: {', '.join(matched_signals[:5])}"
             + (f"; case focus: {' '.join(objective_terms)}" if objective_terms else "")
@@ -673,12 +683,19 @@ async def induce_hypotheses(
     candidates: list[HypothesisCandidate] = []
     generation_path = "deterministic"
     if llm_mod.llm_available():
-        llm_cands = await _llm_generate_candidates(
-            case.objective, claims, max_candidates, case_id
-        )
-        if llm_cands:
-            candidates.extend(llm_cands)
-            generation_path = "llm"
+        try:
+            llm_cands = await _llm_generate_candidates(
+                case.objective, claims, max_candidates, case_id
+            )
+            if llm_cands:
+                candidates.extend(llm_cands)
+                generation_path = "llm"
+        except Exception as exc:
+            # Degrade cleanly when quota/circuit-breaker trips mid-call.
+            logger.warning(
+                "LLM hypothesis induction unavailable (%s); falling back to deterministic candidates",
+                exc,
+            )
     det_cands = _deterministic_candidates(claims, case.objective)
     if det_cands:
         if candidates:

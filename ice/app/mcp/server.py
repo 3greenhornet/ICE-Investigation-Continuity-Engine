@@ -21,6 +21,12 @@ Registration in Claude Code / Cursor:
 
 from __future__ import annotations
 
+# Load ice/.env and ICE_ENV_FILES before any case_engine import
+# (case_engine.llm computes its model chain at import time).
+from envfiles import load_env_files
+
+load_env_files()
+
 import asyncio
 import json
 import logging

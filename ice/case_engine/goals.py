@@ -44,6 +44,7 @@ from __future__ import annotations
 
 import logging
 import re
+import json
 import uuid
 from datetime import datetime, timezone
 from typing import Optional
@@ -148,7 +149,24 @@ def _row_to_goal(row) -> dict:
         "superseded_by": row["superseded_by"],
         "created_at": row["created_at"],
         "updated_at": row["updated_at"],
+        # 022_goal_attributes (explicit by name; .get keeps pre-022 rows readable)
+        "priority": row.get("priority"),
+        "success_criteria": row.get("success_criteria"),
+        "tags": list(row.get("tags") or []),
+        "target_date": row.get("target_date"),
+        "metadata": _jsonb(row.get("metadata")),
     }
+
+
+def _jsonb(value) -> dict:
+    if value is None:
+        return {}
+    if isinstance(value, dict):
+        return value
+    try:
+        return json.loads(value)
+    except (TypeError, ValueError):
+        return {}
 
 
 # ---------------------------------------------------------------------------
@@ -164,8 +182,16 @@ async def create_goal(
     origin: str = "developer_statement",
     rationale: Optional[str] = None,
     supersedes: Optional[str] = None,
+    priority: Optional[int] = None,
+    success_criteria: Optional[str] = None,
+    tags: Optional[list[str]] = None,
+    target_date=None,
+    metadata: Optional[dict] = None,
 ) -> dict:
     """Record one intent node (or a revision superseding an earlier one).
+
+    Optional user attributes (migration 022): priority 1-5, success_criteria,
+    tags, target_date (date or ISO string), metadata (dict).
 
     Postconditions: project_goals row + goal_created event. When
     ``supersedes`` is given the OLD row is marked superseded with a
@@ -180,6 +206,13 @@ async def create_goal(
         raise ValueError(f"clarity_level must be 1-4, got {clarity_level}")
     if not statement or not statement.strip():
         raise ValueError("statement must be non-empty")
+    if priority is not None and not (1 <= int(priority) <= 5):
+        raise ValueError("priority must be 1 (highest) .. 5 (lowest)")
+    tags = sorted({str(t).strip().lower() for t in (tags or []) if str(t).strip()})[:20]
+    if isinstance(target_date, str) and target_date:
+        from datetime import date as _date
+
+        target_date = _date.fromisoformat(target_date[:10])
 
     from case_engine.case import get_case
 
@@ -210,12 +243,17 @@ async def create_goal(
                 INSERT INTO project_goals (
                     goal_id, case_id, kind, statement, clarity_level,
                     status, origin, rationale, version, supersedes,
-                    created_at, updated_at
-                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $11)
+                    created_at, updated_at,
+                    priority, success_criteria, tags, target_date, metadata
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $11,
+                          $12, $13, $14::text[], $15, $16::jsonb)
                 """,
                 goal_id, case_id, kind, statement.strip(), clarity_level,
                 "exploring" if clarity_level == 1 else "active",
                 origin, rationale, version, supersedes, now,
+                int(priority) if priority is not None else None,
+                success_criteria, tags, target_date or None,
+                json.dumps(metadata or {}),
             )
             if supersedes:
                 await conn.execute(
@@ -234,11 +272,191 @@ async def create_goal(
                     "statement": statement.strip()[:300],
                     "clarity_level": clarity_level, "origin": origin,
                     "supersedes": supersedes,
+                    "priority": int(priority) if priority is not None else None,
+                    "tags": tags,
                 },
                 conn=conn,
             )
 
     return await get_goal(goal_id)
+
+
+async def revise_goal(goal_id: str, **changes) -> dict:
+    """Create a new version of a goal with some fields changed (statement,
+    kind, clarity_level, rationale, priority, success_criteria, tags,
+    target_date, metadata). The old version is superseded, never edited in
+    place, so the goal history stays auditable."""
+    allowed = {"statement", "kind", "clarity_level", "origin", "rationale", "priority",
+               "success_criteria", "tags", "target_date", "metadata"}
+    unknown = set(changes) - allowed
+    if unknown:
+        raise ValueError(f"Cannot revise fields: {sorted(unknown)}")
+    old = await get_goal(goal_id)
+    if old["status"] == "superseded":
+        raise ValueError(f"Goal {goal_id} is already superseded by {old['superseded_by']}")
+    fields = {k: old.get(k) for k in allowed}
+    fields.update({k: v for k, v in changes.items()})
+    return await create_goal(old["case_id"], supersedes=goal_id, **fields)
+
+
+def _compute_progress_deltas(
+    prev_maturity: Optional[str],
+    new_maturity: str,
+    prev_metrics: Optional[dict],
+    new_metrics: dict,
+) -> tuple[dict, str]:
+    """Compare previous vs current quantitative metrics to distinguish real progress from activity."""
+    if not prev_maturity and not prev_metrics:
+        return {}, "baseline"
+
+    deltas: dict = {}
+    if prev_maturity in MATURITY_LADDER and new_maturity in MATURITY_LADDER:
+        deltas["maturity_step_delta"] = MATURITY_LADDER.index(new_maturity) - MATURITY_LADDER.index(prev_maturity)
+
+    if prev_metrics:
+        for key in ("checks_passed", "test_count", "caller_count"):
+            if prev_metrics.get(key) is not None and new_metrics.get(key) is not None:
+                deltas[f"{key}_delta"] = int(new_metrics[key]) - int(prev_metrics[key])
+        for key in ("mean_check_score", "check_pass_rate", "health_score"):
+            if prev_metrics.get(key) is not None and new_metrics.get(key) is not None:
+                deltas[f"{key}_delta"] = round(float(new_metrics[key]) - float(prev_metrics[key]), 4)
+        for key in ("total_findings", "blocker_critical_findings", "gap_findings"):
+            if prev_metrics.get(key) is not None and new_metrics.get(key) is not None:
+                deltas[f"{key}_delta"] = int(new_metrics[key]) - int(prev_metrics[key])
+
+    pos = (
+        deltas.get("maturity_step_delta", 0) > 0
+        or deltas.get("checks_passed_delta", 0) > 0
+        or deltas.get("mean_check_score_delta", 0.0) > 0.01
+        or deltas.get("health_score_delta", 0.0) > 0.0
+        or deltas.get("blocker_critical_findings_delta", 0) < 0
+    )
+    neg = (
+        deltas.get("maturity_step_delta", 0) < 0
+        or deltas.get("checks_passed_delta", 0) < 0
+        or deltas.get("mean_check_score_delta", 0.0) < -0.01
+        or deltas.get("health_score_delta", 0.0) < 0.0
+        or deltas.get("blocker_critical_findings_delta", 0) > 0
+    )
+    status = "regressed" if neg else ("improved" if pos else "unchanged")
+    return deltas, status
+
+
+async def _previous_goal_metrics(prev_progress: Optional[dict]) -> Optional[dict]:
+    if not prev_progress or not prev_progress.get("evidence_ids"):
+        return None
+    pool = await get_pool()
+    if pool is None:
+        return None
+    ev_id = prev_progress["evidence_ids"][0]
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow("SELECT metadata FROM evidence WHERE evidence_id = $1", ev_id)
+    if not row or not row["metadata"]:
+        return None
+    meta = row["metadata"]
+    if isinstance(meta, str):
+        try:
+            meta = json.loads(meta)
+        except Exception:
+            return None
+    return meta.get("metrics") if isinstance(meta, dict) else None
+
+
+async def sync_maturity_from_code(goal_id: str, repo: Optional[str] = None) -> dict:
+    """Close the goal-to-code loop: ask RepoIntel's knowledge base how far the
+    goal is implemented, ingest that observation as TOOL evidence, and record
+    an evidence-backed maturity assessment (assessed_by='ice') with metric deltas.
+
+    repo: RepoIntel repository name or id (default REPOINTEL_REPO). The
+    maturity ladder's honesty rule still applies: anything above 'scaffolded'
+    is backed by the ingested evidence id.
+    """
+    from case_engine.evidence import _create_source, ingest_evidence
+    from case_engine.repointel_client import RepoIntelClient
+
+    goal = await get_goal(goal_id)
+    client = RepoIntelClient(repo=repo)
+    if not client.is_available:
+        raise ValueError("RepoIntel knowledge base not found (set REPOINTEL_DB / REPOINTEL_DIR)")
+    prev_progress = await latest_maturity(goal_id)
+    prev_metrics = await _previous_goal_metrics(prev_progress)
+
+    repo_id = client.resolve_repo_id()
+    a = client.check_goal_code_maturity(
+        goal_id,
+        goal["statement"],
+        goal["kind"],
+        success_criteria=goal.get("success_criteria"),
+    )
+    maturity = a.suggested_maturity if a.suggested_maturity in MATURITY_LADDER else "no_candidate"
+    deltas, progress_status = _compute_progress_deltas(
+        prev_progress["maturity"] if prev_progress else None,
+        maturity,
+        prev_metrics,
+        a.metrics or {},
+    )
+
+    checks_line = (
+        f"capability checks: {a.checks_passed}/{a.checks_total} passed "
+        f"(mean score {(a.metrics or {}).get('mean_check_score', 0.0):.2f})"
+    )
+    delta_summary = f"progress={progress_status}"
+    if deltas:
+        delta_parts = [f"{k}={v:+g}" if isinstance(v, (int, float)) else f"{k}={v}" for k, v in deltas.items() if v]
+        if delta_parts:
+            delta_summary += " (" + ", ".join(delta_parts[:5]) + ")"
+
+    content = (
+        f"[RepoIntel goal maturity] {goal['statement'][:200]}\n"
+        f"repository: {repo_id or 'all indexed'} · suggested maturity: {maturity} · "
+        f"divergence risk: {a.divergence_risk} · {delta_summary}\n"
+        f"{checks_line} · health_score={(a.metrics or {}).get('health_score')} · "
+        f"findings={(a.metrics or {}).get('total_findings', 0)}\n"
+        f"candidate symbols: {', '.join(a.candidate_symbols[:10]) or 'none'}\n"
+        f"callers: {', '.join(a.callers_found[:10]) or 'none'}\n"
+        f"tests: {', '.join(a.tests_found[:10]) or 'none'}\n"
+        f"{a.evidence_summary}"
+    )
+    src = await _create_source(goal["case_id"], "TOOL", f"repointel://{repo_id or 'all'}/goal/{goal_id}",
+                               metadata={"tool": "repointel", "goal_id": goal_id})
+    ev = await ingest_evidence(
+        case_id=goal["case_id"], content=content, source_id=src.source_id,
+        evidence_type="TOOL_RESULT",
+        metadata={
+            "tool": "repointel",
+            "goal_id": goal_id,
+            "repo_id": repo_id,
+            "candidate_symbols": a.candidate_symbols,
+            "tests_found": a.tests_found,
+            "checks_passed": a.checks_passed,
+            "checks_total": a.checks_total,
+            "check_details": a.check_details,
+            "metrics": a.metrics,
+            "deltas": deltas,
+            "progress_status": progress_status,
+        },
+    )
+    note = (
+        f"auto from RepoIntel ({repo_id or 'all repos'}): "
+        f"[{progress_status}; {a.checks_passed}/{a.checks_total} checks] {a.evidence_summary[:200]}"
+    )
+    progress = await assess_maturity(
+        goal_id, maturity, evidence_ids=[ev.evidence_id], assessed_by="ice",
+        note=note,
+    )
+    return {
+        **progress,
+        "repo_id": repo_id,
+        "divergence_risk": a.divergence_risk,
+        "candidate_symbols": a.candidate_symbols,
+        "tests_found": a.tests_found,
+        "checks_passed": a.checks_passed,
+        "checks_total": a.checks_total,
+        "check_details": a.check_details,
+        "metrics": a.metrics,
+        "deltas": deltas,
+        "progress_status": progress_status,
+    }
 
 
 async def get_goal(goal_id: str) -> dict:
@@ -712,6 +930,211 @@ async def decompose_goal(goal_id: str, decided_by: str = "ice") -> dict:
             "accepted decision until the user confirms or a "
             "developer_statement records it."
         ),
+    }
+
+
+async def propose_adjacent_goals(
+    case_id: str,
+    repo: Optional[str] = None,
+    max_proposals: int = 4,
+) -> dict:
+    """Surface grounded 'would-be-nice / adjacent possible' follow-on goals.
+
+    Synthesizes next-step goal proposals (`origin='ice_proposal'`, never
+    auto-confirmed) from three live planes:
+      1. Matured / connected goals that still lack tests or verification
+      2. RepoIntel audit gaps, critical findings, and high-risk files
+      3. Discovered cross-domain mechanisms in mechanism_lab ready to adapt
+    """
+    existing = await list_goals(case_id, include_superseded=False)
+    existing_tokens = [_tokens(g["statement"]) for g in existing]
+
+    def _is_duplicate(text: str) -> bool:
+        toks = _tokens(text)
+        if not toks:
+            return True
+        for old_toks in existing_tokens:
+            union = toks | old_toks
+            if union and (len(toks & old_toks) / len(union)) >= 0.62:
+                return True
+        return False
+
+    candidates: list[dict] = []
+
+    # 1. Code intelligence signals (gaps, critical findings, defect hotspots)
+    try:
+        from case_engine.repointel_client import RepoIntelClient
+
+        client = RepoIntelClient(repo=repo)
+        if client.is_available:
+            rid = client.resolve_repo_id()
+            for finding in client.get_findings(repo_id=rid, severity="critical", limit=6):
+                fp = finding.get("file_path") or "unknown file"
+                msg = (finding.get("message") or finding.get("rule_id") or "critical finding").strip()
+                stmt = f"Eliminate critical audit/security issue in {fp}: {msg[:110]}"
+                candidates.append({
+                    "statement": stmt,
+                    "kind": "requirement",
+                    "priority": 1,
+                    "success_criteria": f"Zero critical findings reported for {fp}; regression tests pass",
+                    "rationale": f"RepoIntel critical finding {finding.get('rule_id')}",
+                    "parent_goal_id": None,
+                })
+            gaps_report = client.list_gaps(repo_id=rid, limit=6)
+            for gap in (gaps_report.get("gaps") or [])[:4]:
+                fp = gap.get("file_path") or "codebase"
+                ft = gap.get("finding_type") or "gap"
+                msg = (gap.get("message") or "").strip()
+                stmt = f"Close {ft} in {fp}: {msg[:110]}"
+                candidates.append({
+                    "statement": stmt,
+                    "kind": "need",
+                    "priority": 2,
+                    "success_criteria": f"{ft} in {fp} resolved and covered by automated verification",
+                    "rationale": f"RepoIntel detected {ft} during analysis",
+                    "parent_goal_id": None,
+                })
+            for pred in client.get_quality_predictions(min_probability=0.65, limit=3):
+                fp = pred.get("file_path") or ""
+                if fp:
+                    stmt = f"Harden defect-prone module {fp} with targeted tests and invariants"
+                    candidates.append({
+                        "statement": stmt,
+                        "kind": "quality_objective",
+                        "priority": 2,
+                        "success_criteria": f"Unit tests cover edge cases in {fp}; defect probability reduced",
+                        "rationale": f"ML quality predictor flagged {fp} (p={pred.get('probability'):.2f})",
+                        "parent_goal_id": None,
+                    })
+    except Exception as exc:
+        logger.debug("adjacent goals repo probe skipped: %s", exc)
+
+    # 2. Goals stuck at 'connected' or 'candidate' ready for verification milestones
+    for g in existing:
+        if g["kind"] in ("goal", "need", "requirement"):
+            lat = await latest_maturity(g["goal_id"])
+            if lat and lat["maturity"] in ("candidate", "connected"):
+                stmt = f"Add end-to-end verification and benchmark checks for: {g['statement'][:100]}"
+                candidates.append({
+                    "statement": stmt,
+                    "kind": "milestone",
+                    "priority": min(5, max(1, int(g.get("priority") or 3))),
+                    "success_criteria": g.get("success_criteria") or "Automated tests verify behavior and measure delta",
+                    "rationale": f"Goal {g['goal_id']} is at '{lat['maturity']}' and ready for 'tested' maturity",
+                    "parent_goal_id": g["goal_id"],
+                })
+
+    # 3. Cross-domain mechanisms awaiting adaptation
+    try:
+        from case_engine.mechanism_lab import list_mechanisms
+
+        for mech in await list_mechanisms(decision="pending"):
+            mname = mech.get("name") or ""
+            dom = mech.get("original_domain") or "cross-domain"
+            adapt = (mech.get("inverted_use") or "").strip()
+            if mname and adapt:
+                stmt = f"Prototype '{mname}' (from {dom}) to improve workflow: {adapt[:90]}"
+                candidates.append({
+                    "statement": stmt,
+                    "kind": "goal",
+                    "priority": 3,
+                    "success_criteria": f"Controlled offline benchmark shows improvement from {mname} adaptation",
+                    "rationale": f"Discovered mechanism {mech.get('mechanism_id')} pending adaptation",
+                    "parent_goal_id": existing[0]["goal_id"] if existing else None,
+                })
+    except Exception as exc:
+        logger.debug("adjacent goals mechanism lookup skipped: %s", exc)
+
+    # Optional LLM refinement/synthesis over the grounded signals
+    llm_refined: list[dict] = []
+    try:
+        from case_engine.llm import _call_llm_json, llm_available
+
+        if llm_available() and (candidates or existing):
+            g_summary = "\n".join(f"- [{g['kind']}] {g['statement']}" for g in existing[:8])
+            c_summary = "\n".join(f"- {c['statement']} ({c['rationale']})" for c in candidates[:10])
+            out = await _call_llm_json(
+                prompt=(
+                    f"Existing active project goals:\n{g_summary or '(none)'}\n\n"
+                    f"Observed codebase hotspots, gaps, and pending cross-domain mechanisms:\n{c_summary or '(none)'}\n\n"
+                    f"Suggest up to {max_proposals} high-leverage 'would-be-nice' follow-on goals or optimizations "
+                    "that unlock the next level cleanly now that we know the above. Do not repeat existing goals.\n"
+                    'Return JSON: {"proposals": [{"statement": "...", "kind": "goal|need|milestone|quality_objective", '
+                    '"priority": 2, "success_criteria": "...", "rationale": "..."}]}'
+                ),
+                system_prompt="You propose concrete, verifiable engineering follow-on goals grounded in observed signals. Return ONLY valid JSON.",
+                temperature=0.3,
+                role="GENERATOR",
+                operation="propose_adjacent_goals",
+                case_id=case_id,
+                max_retries=1,
+            )
+            for item in (out or {}).get("proposals") or []:
+                if isinstance(item, dict) and str(item.get("statement") or "").strip():
+                    k = item.get("kind") if item.get("kind") in GOAL_KINDS else "goal"
+                    prio = item.get("priority")
+                    llm_refined.append({
+                        "statement": str(item["statement"]).strip()[:300],
+                        "kind": k,
+                        "priority": int(prio) if isinstance(prio, int) and 1 <= prio <= 5 else 2,
+                        "success_criteria": str(item.get("success_criteria") or "")[:300] or None,
+                        "rationale": str(item.get("rationale") or "adjacent follow-on opportunity")[:300],
+                        "parent_goal_id": existing[0]["goal_id"] if existing else None,
+                    })
+    except Exception as exc:
+        logger.info("LLM adjacent-goal synthesis fell back to grounded signals: %s", exc)
+
+    ordered = llm_refined + candidates
+    created: list[dict] = []
+    edges: list[dict] = []
+    for cand in ordered:
+        if len(created) >= max_proposals:
+            break
+        if _is_duplicate(cand["statement"]):
+            continue
+        existing_tokens.append(_tokens(cand["statement"]))
+        g_row = await create_goal(
+            case_id=case_id,
+            statement=cand["statement"],
+            kind=cand["kind"] if cand["kind"] in GOAL_KINDS else "goal",
+            clarity_level=2,
+            origin="ice_proposal",
+            rationale=cand.get("rationale"),
+            priority=cand.get("priority"),
+            success_criteria=cand.get("success_criteria"),
+        )
+        created.append(g_row)
+        if cand.get("parent_goal_id"):
+            try:
+                edges.append(
+                    await connect_goals(
+                        from_goal=g_row["goal_id"],
+                        to_goal=cand["parent_goal_id"],
+                        relation="motivated_by",
+                        provenance="ice_proposal",
+                        note="adjacent follow-on proposal",
+                    )
+                )
+            except Exception:
+                pass
+
+    if created:
+        await _emit_event(
+            case_id,
+            "goal_decomposition_proposed",
+            {
+                "goal_id": created[0]["goal_id"],
+                "proposed_adjacent_goals": [c["goal_id"] for c in created],
+                "method": "adjacent-possible-v1",
+            },
+        )
+
+    return {
+        "case_id": case_id,
+        "proposals": created,
+        "edges": edges,
+        "signals_considered": len(candidates),
+        "note": "Proposals only (origin=ice_proposal); developer confirmation required before treating as committed goals.",
     }
 
 

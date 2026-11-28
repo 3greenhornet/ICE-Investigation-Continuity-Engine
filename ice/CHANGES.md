@@ -10,6 +10,109 @@ deviation is listed here (the fixes-doc convention).
 
 ---
 
+## Recursive loop, abstract-goal checks, web filter, cross-domain discovery & Streamlit UI (2026-11-28)
+
+- **Closed ICE ↔ RepoIntel improvement loop (`LAB_PROPOSE`):**
+  - Migration **023_lab_propose_action.sql** adds `'LAB_PROPOSE'` to `actions.action_type` CHECK constraint (registered in `conftest.py` and `scripts/run_benchmark_offline.py`).
+  - `case_engine/schemas.py` (`ActionType`) & `case_engine/action.py` (`LabProposeExecutor`, `research_to_lab_proposal`, wired into `default_executor_for` before `RepoIntelExecutor`) enable generating isolated RepoIntel Lab sandbox proposals (`files=[]` triggers Lab auto-discovery). Execution requires `AUTONOMY_LEVEL >= 1`, `approval_class="REVERSIBLE"`, and never calls `/apply`.
+  - Route `POST /api/v1/repointel/lab-proposals` exposes `research_to_lab_proposal`.
+- **Abstract-goal decomposition & measurable progress deltas (`repointel_client.py` + `goals.py`):**
+  - `RepoIntelClient.decompose_goal_checks()` splits abstract goals and `success_criteria` into capability checks combining hybrid semantic search (`_semantic_candidates`), IDF-ranked symbol/docstring search, stub detection (`_is_trivial_stub` -> `"scaffolded"`), callers/tests, and blocking audit findings.
+  - `goals.sync_maturity_from_code()` compares current metrics (`checks_passed`, `mean_check_score`, `health_score`, `blocker_critical_findings`, `test_count`) against prior assessed evidence (`_compute_progress_deltas`) and records `progress_status` (`baseline | improved | regressed | unchanged`) + `deltas`.
+- **Adjacent-possible ("would-be-nice") follow-on goal proposals (`goals.py` + `app/routes/goals.py`):**
+  - `propose_adjacent_goals()` and `POST /cases/{case_id}/goals/adjacent-proposals` synthesize deduplicated `origin='ice_proposal'` follow-on goals from matured goals, RepoIntel audit/defect hotspots, and pending cross-domain mechanisms.
+- **Web research noise filtering (`web_research.py`):**
+  - Added `score_research_relevance()` and `filter_research_items()` inside `ingest_research(min_relevance=0.18)` to drop blockwalls/403/captcha fluff, duplicate canonical URLs, and low-overlap boilerplate before ingesting URL evidence.
+- **Cross-domain discovery & benchmark (`discovery.py` + `benchmark/cross_domain_cases.json`):**
+  - Added `semantic_scholar_search()` (with rate-limiting, cache, and optional `SEMANTIC_SCHOLAR_API_KEY`) to `openalex_field_census` and `field_sources`.
+  - Added an 8-case cross-domain discovery benchmark (`benchmark/cross_domain_cases.json`) anchored by chatbot repetition -> IR/Recommender Systems (MMR/DPP) / Behavioral Ecology.
+- **ICE Streamlit UI (`ui/`):**
+  - Upgraded `ui/api_client.py` (`run_async`), `ui/streamlit_app.py`, `case_overview.py`, `evidence_graph.py`, and added `ui/screens/goals_board.py` (goals, RepoIntel maturity sync + deltas, adjacent proposals, draft Lab action) and `ui/screens/discovery_lab.py` (cross-domain discovery + Mechanism Lab reuse/adapt/reject feedback training the Field Bandit).
+  - Kept UI strictly HTTP-only (`tests/unit/test_streamlit_ui.py`).
+- **Offline integration reliability & induction resilience (`induction.py`, `retrieval.py`, `test_action_lifecycle.py`, `test_reasoning_loop.py`):**
+  - Caught LLM exhaustion inside `induce_hypotheses` to fall back to `_deterministic_candidates`; added `MIN_VECTOR_SIMILARITY = 0.58` cutoff on vector search; fixed 6 integration test LLM-mock/env dependencies.
+
+---
+
+## Web research, goal-driven investigation, real RepoIntel evidence (2026-11-28)
+
+Running ICE against a real Postgres database and a real goal for the first time on this machine surfaced these issues. Each was fixed in the experimental lane or the projection layer: no new event types and no change to `case_engine/__init__.py`.
+
+- **Web research backend** (`case_engine/web_research.py`, new):
+  - SEARCH could only fetch a URL a human typed in, and only with paid Scrapfly or Firecrawl keys; natural-language searches were UNSUPPORTED.
+  - It now uses `ddgs` (DuckDuckGo, no key), `trafilatura` (page text) and GitHub repository search (keyword-compressed, because GitHub ANDs terms).
+  - LLM query planning (`plan_queries`, logged in the LLM ledger) turns outcome-style goals into technical queries.
+  - `SCRAPER=local` is the new default; `ICE_WEB_RESEARCH=0` turns every lookup off.
+  - Entry points: MCP `ice_web_research` and `POST /cases/{id}/evidence/web-research`.
+- **Intent-based SEARCH routing** (`search_scope`): external-knowledge cues ("alternatives", "library", "benchmark", "latest"…) go to web research, everything else to RepoIntel code search, and an explicit `scope` parameter wins. Previously every non-URL search went to RepoIntel.
+- **RepoIntelExecutor:**
+  - It created sources and evidence with the invalid types `"CODE"`. Every ingest failed, and the `except` branch then **fabricated evidence ids** (`ev_sim_…`) and reported success. It now uses `CODE_REPO` / `TOOL_RESULT`, and a failed write is reported as a failed action.
+  - Queries are distilled from templated gap text.
+  - Code search uses RepoIntel's hybrid retrieval API (`GET /api/v1/search/{repo}`) before SQL `LIKE`.
+  - Repo scope is taken from the action, or from case titles "RepoIntel: <repo>".
+- **`RepoIntelClient` repo scoping:** symbol ids are not repo-qualified, so counts, hubs, callers, impact and code search mixed every indexed repo. Queries are now scoped by `repo` / `REPOINTEL_REPO` (name or id) through CONTAINS edges.
+- **Goal-maturity check:**
+  - It is now scoped to the repo and uses semantic candidates.
+  - Keywords are specificity-ranked with stop words and light stemming.
+  - Finding nodes are excluded.
+  - Test-reference detection is added.
+- **Goals:**
+  - Migration **022_goal_attributes** (idempotent) adds `priority` (1–5), `success_criteria`, `tags`, `target_date` and `metadata`, mapped explicitly in `_row_to_goal`.
+  - `revise_goal()` changes attributes by supersession, keeping the history and emitting only `goal_created`.
+  - `sync_maturity_from_code()` closes the goal-to-code loop: RepoIntel's assessment is ingested as TOOL evidence and recorded as an evidence-backed maturity step.
+  - Entry points: routes `/goals/{id}/revise` and `/goals/{id}/maturity/sync`; MCP tools `ice_revise_goal` and `ice_sync_goal_maturity`.
+  - The `ice_create_goal` docstring now matches `CLARITY_LEVELS`.
+- **Goal-driven research questions:** STORM-lite questions now come from the case's highest-priority active goals. Before, they came from the case objective ("…about Track and investigate code-intelligence findings…"). Gap priority follows goal priority (P1 = 0.8).
+- **Research-mode actions:** `compute_gap_priority` returns a flat 0.3 for gaps that discriminate fewer than two hypotheses, which every research question does, so research mode could never pass its 0.4 bar. For such gaps the stored priority is now used (research branch only; the debug branch is unchanged).
+- **Induction grounding:** "case focus" dropped stop words, so it no longer reads "and code find for".
+- **`code_understanding.explain_why_this_code_exists`:** read the non-existent `CodeSymbol.line_start`; the line now comes from the symbol id.
+- **`envfiles.py` (new):** the API and the MCP server load `ice/.env` plus `ICE_ENV_FILES` without overriding existing variables. Before, ICE's only working LLM key was a 20-requests-per-day Gemini free tier.
+- **Migration lists:** `scripts/api_smoke.py` and `scripts/run_verify.py` were missing 021; 021 and 022 are now listed there, in `conftest.py` and in `run_benchmark_offline.py`.
+- **Tests:**
+  - New: `tests/unit/test_web_research_routing.py` (16 tests) and `tests/integration/test_goal_attributes.py` (3 tests).
+  - `test_action_lifecycle.py` updated for the keyless default scraper and the no-backend case.
+  - Pre-existing integration failures, which reproduce on the untouched HEAD: four reasoning-loop tests and `test_execute_action_transitions_to_completed` need a live LLM or a fresh database. `test_execute_compare_produces_derived_evidence` calls a real LLM and fails when the Gemini quota is exhausted.
+
+---
+
+## Serendipity engine: DPP made real (2026-11-28)
+
+The README, the MCP tool `ice_suggest_next` and `CLAUDE.md` described a "DPP diversity" engine, but `serendipity/diversity.py` only had greedy MMR. `ice_suggest_next` also never ran the engine: it returned the first six goals.
+
+- **`diversity.dpp_select`**: greedy MAP inference for a Determinantal Point Process with the incremental Cholesky update of Chen, Zhang & Zhou (NeurIPS 2018). It uses kernel `L = diag(q)·S·diag(q)` with quality `q = exp(theta·relevance)`, and theta comes from the existing `mmr_lambda` dial. It conditions on items already picked for the batch, so it penalises redundancy against the whole set, where MMR only looks at the nearest item. It is pure Python, bounded by `dpp_max_pool` (default 64), and deterministic.
+- **`SerendipityConfig.diversity_method`** is `"mmr"` (default, unchanged behaviour) or `"dpp"`.
+- **`ice_suggest_next(case_id, n, context)`** now runs the engine over active goals plus open information gaps, using DPP and Thompson sampling by default (`ICE_SERENDIPITY_DIVERSITY`, `ICE_SERENDIPITY_POLICY`). The bandit state persists in `ICE_SERENDIPITY_STORE` (default `data/serendipity_store.sqlite`).
+- **New MCP tool `ice_suggest_feedback(token, signal)`** closes the bandit loop.
+- **Tests**: `serendipity-engine/tests/test_dpp.py` (13 tests, including the set-redundancy case where MMR fails), and a tools test in `tests/unit/test_integration_hardening.py`.
+- No migrations and no new event types. The engine's own SQLite store is not ICE state.
+
+---
+
+## Cross-project integration hardening (2026-11-28)
+
+This pass changes the projection layer only. There are no migrations, no new event types and no change to `case_engine/__init__.py`. Every state write still goes through `case_engine` ingestion.
+
+- **`app/routes/guide.py` (new)**, mounted at `/api/v1/guide`. It serves the `CodeUnderstandingEngine` over HTTP: `walkthrough`, `import-learnharness`, `plan`, `step`, `probe`, `evaluate`, `diagram` and `explain`. Before this, the engine was reachable only through the stdio MCP tools, and RepoIntel's HTTP calls always fell back. Calls are serialised with a process lock, and the routes are `def`, so they run in the threadpool. `CodeUnderstandingEngine._save_to_disk` now writes atomically (temp file + `os.replace`), so concurrent saves cannot leave a half-written store.
+- **`POST /api/v1/repointel/event`: deliberate contract change.** It returned `investigation_opened: True` for HIGH/CRITICAL findings without persisting anything. Now:
+  - `flagged_for_investigation` reports the flag.
+  - `investigation_opened` is True only when the event was written as `TOOL_RESULT` evidence. That happens when `case_id` is given, via `_create_source(..., "TOOL")` and `ingest_evidence`.
+  - `persisted_evidence_id` is returned.
+  - `TestFailed` events are also persisted.
+  - An unknown `case_id` is reported in `error` (HTTP 200, not retryable). `DatabaseUnavailableError` still yields a 503, which tells RepoIntel to retry.
+  - Severity matching is case-insensitive.
+  - `tests/unit/test_repointel_client.py::test_repointel_event_sync` and `scripts/e2e_cognitive_smoke.py` were updated to the honest semantics.
+- **`EvidenceCreate`** gains optional `source_type` / `source_uri`, used only when `source_id` is absent. The default is still `HUMAN`, so existing callers see no change. RepoIntel sends `TOOL`.
+- **`case_engine/repointel_client.py`**:
+  - DB discovery order is `REPOINTEL_DB`, then `REPOINTEL_DIR`, then the workspace sibling `../../repointel-ai-2`, then the legacy developer path (last).
+  - `get_file_snippet` now rejects drive-letter and UNC paths, which `os.path.join` silently honoured, so `C:/Windows/win.ini` was readable through `/api/v1/repointel/file`. It also performs a realpath containment check, refuses secret-bearing files (`.env*` except `.env.example`, keys, credentials, `*.db`), and caps ranges at 2000 lines.
+  - The SQLite read-only connection now has a busy timeout (`REPOINTEL_DB_TIMEOUT`).
+- **`app/routes/repointel.py`**: the 18 handlers that never `await` are now `def`, so their blocking SQLite reads no longer stall the event loop under concurrent load.
+- **`db/connection.py`**: emoji `print()` calls are replaced with logging. On Windows, `print()` of non-cp1252 characters to a pipe or file raises `UnicodeEncodeError`, which aborted the FastAPI lifespan. Pool bounds are configurable (`DB_POOL_MIN` / `DB_POOL_MAX`, default max raised from 5 to 10).
+- **New env vars** in `.env.example`: `REPOINTEL_URL`, `REPOINTEL_DB`, `REPOINTEL_DIR`, `REPOINTEL_DB_TIMEOUT`, `AUTONOMY_LEVEL`, `DB_POOL_MIN`, `DB_POOL_MAX`.
+- **Tests**: `tests/unit/test_integration_hardening.py` (28 tests, marker `unit`).
+
+---
+
 ## Goal-system + research-mode phase (2026-11-17) — closing the two
 ## biggest deferred streams from the document
 

@@ -1,45 +1,87 @@
 """ui/screens/case_overview.py — Case Overview screen (spec §15.3)."""
-import asyncio
-
 import streamlit as st
 
 from ui import api_client
 
 
+def _render_create_case_form(prefix: str = "main"):
+    """Reusable case-creation form so the UI never traps users at an empty state."""
+    with st.form(f"create_case_form_{prefix}", clear_on_submit=True):
+        title = st.text_input("Case Title", placeholder="e.g. Improve RepoIntel RAG precision")
+        objective = st.text_area(
+            "Objective",
+            placeholder="Describe the engineering goal, bug, or open research question...",
+            height=90,
+        )
+        case_type = st.selectbox("Case Type", ["debug", "research", "explore"])
+        submitted = st.form_submit_button("Create Case")
+        if submitted:
+            if not title.strip() or not objective.strip():
+                st.warning("Both title and objective are required.")
+            else:
+                try:
+                    created = api_client.run_async(
+                        api_client.create_case(
+                            title=title.strip(),
+                            objective=objective.strip(),
+                            case_type=case_type,
+                        )
+                    )
+                    st.session_state["current_case_id"] = created["case_id"]
+                    st.success(f"Created case {created['case_id']}")
+                    st.rerun()
+                except Exception as exc:
+                    st.error(f"Failed to create case: {exc}")
+
+
 def render():
     with st.sidebar:
         st.header("Case Selector")
+        repo_input = st.text_input(
+            "RepoIntel Repo Scope (optional)",
+            value=st.session_state.get("repointel_repo") or "",
+            placeholder="repo name or id",
+        )
+        st.session_state["repointel_repo"] = repo_input.strip() or None
+
         try:
-            cases = asyncio.run(api_client.list_cases())
+            cases = api_client.run_async(api_client.list_cases())
         except Exception as exc:
             st.error(f"Failed to load cases: {exc}")
             return
 
-        if not cases:
-            st.info("No cases yet. Create one via the CLI.")
-            return
+        if cases:
+            labels = {f"{c['title']} ({c['case_id']})": c["case_id"] for c in cases}
+            keys = list(labels.keys())
+            current_id = st.session_state.get("current_case_id")
+            default_idx = next((i for i, k in enumerate(keys) if labels[k] == current_id), 0)
+            selected_label = st.selectbox("Case", keys, index=default_idx)
+            selected_id = labels[selected_label]
+            st.session_state["current_case_id"] = selected_id
 
-        labels = {f"{c['title']} ({c['case_id']})": c["case_id"] for c in cases}
-        selected_label = st.selectbox("Case", list(labels.keys()))
-        selected_id = labels[selected_label]
-        st.session_state["current_case_id"] = selected_id
+            if st.button("Run Investigation"):
+                try:
+                    with st.spinner("Running investigation cycle..."):
+                        result = api_client.run_async(api_client.run_investigation(selected_id))
+                    st.success(f"Decision: {result['decision']['decision_type']}")
+                    st.rerun()
+                except Exception as exc:
+                    st.error(f"Investigation failed: {exc}")
+        else:
+            st.info("No cases yet.")
 
-        if st.button("Run Investigation"):
-            try:
-                with st.spinner("Running investigation cycle..."):
-                    result = asyncio.run(api_client.run_investigation(selected_id))
-                st.success(f"Decision: {result['decision']['decision_type']}")
-                st.rerun()
-            except Exception as exc:
-                st.error(f"Investigation failed: {exc}")
+        with st.expander("➕ New Case", expanded=not bool(cases)):
+            _render_create_case_form("sidebar")
 
     case_id = st.session_state.get("current_case_id")
     if not case_id:
-        st.info("Select a case from the sidebar.")
+        st.title("Investigation Continuity Engine")
+        st.info("Create a case below or select one from the sidebar to begin.")
+        _render_create_case_form("empty")
         return
 
     try:
-        summary = asyncio.run(api_client.get_case_summary(case_id))
+        summary = api_client.run_async(api_client.get_case_summary(case_id))
     except Exception as exc:
         st.error(f"Failed to load summary: {exc}")
         return
@@ -71,7 +113,7 @@ def render():
     # not thread debt — the previous heading mislabeled it.
     st.subheader("Gap Priority Distribution")
     try:
-        gaps = asyncio.run(api_client.list_gaps(case_id))
+        gaps = api_client.run_async(api_client.list_gaps(case_id))
     except Exception:
         gaps = []
 
@@ -93,7 +135,7 @@ def render():
     st.divider()
     st.subheader("Thread Debt")
     try:
-        threads_response = asyncio.run(api_client.get_active_threads_debt(case_id))
+        threads_response = api_client.run_async(api_client.get_active_threads_debt(case_id))
     except Exception:
         threads_response = []
 
@@ -110,7 +152,7 @@ def render():
     st.divider()
     st.subheader("Active Contradictions")
     try:
-        contradictions = asyncio.run(api_client.list_contradictions(case_id))
+        contradictions = api_client.run_async(api_client.list_contradictions(case_id))
     except Exception:
         contradictions = []
 
@@ -140,14 +182,14 @@ def render():
         if status == "proposed":
             if col_act1.button("✅ Approve Action", key=f"app_{act_id}"):
                 try:
-                    asyncio.run(api_client.approve_action(act_id))
+                    api_client.run_async(api_client.approve_action(act_id))
                     st.success(f"Action {act_id} approved!")
                     st.rerun()
                 except Exception as exc:
                     st.error(f"Approval failed: {exc}")
             if col_act2.button("❌ Reject Action", key=f"rej_{act_id}"):
                 try:
-                    asyncio.run(api_client.reject_action(act_id))
+                    api_client.run_async(api_client.reject_action(act_id))
                     st.warning(f"Action {act_id} rejected.")
                     st.rerun()
                 except Exception as exc:
@@ -156,7 +198,7 @@ def render():
             if col_act1.button("⚡ Execute Action", key=f"exec_{act_id}"):
                 try:
                     with st.spinner("Executing action via executor..."):
-                        res = asyncio.run(api_client.execute_action(act_id))
+                        res = api_client.run_async(api_client.execute_action(act_id))
                     st.success(f"Executed: {res.get('status', 'completed')}")
                     st.rerun()
                 except Exception as exc:
@@ -169,7 +211,7 @@ def render():
     # aged threads, uncited evidence, stuck hypotheses, aged contradictions.
     st.subheader("The system noticed")
     try:
-        suggestions = asyncio.run(api_client.get_suggestions(case_id))
+        suggestions = api_client.run_async(api_client.get_suggestions(case_id))
     except Exception:
         suggestions = []
 

@@ -100,10 +100,11 @@ async def run_e2e_smoke() -> int:
     reaction = await repointel_event_sync(event_payload)
     assert reaction["event_received"] == "FindingDetected"
     assert reaction["action_taken"] == "auto_flagged_critical_finding"
-    assert reaction["investigation_opened"] is True
+    assert reaction["flagged_for_investigation"] is True
     print(f"  -> Reverse event processed successfully:")
     print(f"     Action Taken: {reaction['action_taken']}")
-    print(f"     Investigation Triggered: {reaction.get('investigation_opened')}")
+    print(f"     Flagged: {reaction['flagged_for_investigation']}  "
+          f"Persisted into a case: {reaction['investigation_opened']}")
 
     # -------------------------------------------------------------
     # 4. Socratic & Pedagogical Entailment (LearnHarness Synergy)

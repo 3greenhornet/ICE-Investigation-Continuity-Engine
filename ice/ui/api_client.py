@@ -6,6 +6,8 @@ Every screen uses this client. No screen imports ``case_engine/`` directly
 BASE_URL comes from the API_BASE_URL env var and defaults to
 http://localhost:8000/api/v1.
 """
+import asyncio
+from concurrent.futures import ThreadPoolExecutor
 import os
 
 import httpx
@@ -13,8 +15,40 @@ import httpx
 BASE_URL = os.getenv("API_BASE_URL", "http://localhost:8000/api/v1")
 
 
-def _client() -> httpx.AsyncClient:
-    return httpx.AsyncClient(base_url=BASE_URL, timeout=30.0)
+def _client(timeout: float = 30.0) -> httpx.AsyncClient:
+    return httpx.AsyncClient(base_url=BASE_URL, timeout=timeout)
+
+
+def run_async(coro):
+    """Run an async client coroutine safely from Streamlit's synchronous callbacks."""
+    try:
+        asyncio.get_running_loop()
+    except RuntimeError:
+        return asyncio.run(coro)
+    with ThreadPoolExecutor(max_workers=1) as pool:
+        return pool.submit(asyncio.run, coro).result()
+
+
+async def create_case(
+    title: str,
+    objective: str,
+    case_type: str = "debug",
+    required_confidence: float | None = None,
+):
+    payload: dict = {"title": title, "objective": objective, "case_type": case_type}
+    if required_confidence is not None:
+        payload["required_confidence"] = required_confidence
+    async with _client() as client:
+        r = await client.post("/cases", json=payload)
+        r.raise_for_status()
+        return r.json()
+
+
+async def update_case_status(case_id: str, status: str, reason: str | None = None):
+    async with _client() as client:
+        r = await client.patch(f"/cases/{case_id}", json={"status": status, "reason": reason})
+        r.raise_for_status()
+        return r.json()
 
 
 async def list_cases(status=None, limit=50):
@@ -216,5 +250,182 @@ async def ingest_external_analysis(
                 "source_uri": source_uri,
             },
         )
+        r.raise_for_status()
+        return r.json()
+
+
+async def add_evidence(
+    case_id: str,
+    content: str,
+    evidence_type: str = "OBSERVATION",
+    source_type: str = "HUMAN",
+    source_uri: str | None = None,
+):
+    async with _client() as client:
+        r = await client.post(
+            f"/cases/{case_id}/evidence",
+            json={
+                "content": content,
+                "evidence_type": evidence_type,
+                "source_type": source_type,
+                "source_uri": source_uri,
+            },
+        )
+        r.raise_for_status()
+        return r.json()
+
+
+async def run_web_research(
+    case_id: str,
+    query: str,
+    max_results: int = 4,
+    include_github: bool = True,
+    ingest: bool = True,
+):
+    async with _client(timeout=90.0) as client:
+        r = await client.post(
+            f"/cases/{case_id}/evidence/web-research",
+            json={
+                "query": query,
+                "max_results": max_results,
+                "include_github": include_github,
+                "ingest": ingest,
+            },
+        )
+        r.raise_for_status()
+        return r.json()
+
+
+async def list_goals(case_id: str, kind: str | None = None, include_superseded: bool = False):
+    params: dict = {"include_superseded": include_superseded}
+    if kind:
+        params["kind"] = kind
+    async with _client() as client:
+        r = await client.get(f"/cases/{case_id}/goals", params=params)
+        r.raise_for_status()
+        return r.json()
+
+
+async def create_goal(
+    case_id: str,
+    statement: str,
+    kind: str = "goal",
+    clarity_level: int = 2,
+    priority: int | None = None,
+    success_criteria: str | None = None,
+    tags: list[str] | None = None,
+):
+    payload: dict = {"statement": statement, "kind": kind, "clarity_level": clarity_level}
+    if priority is not None:
+        payload["priority"] = priority
+    if success_criteria:
+        payload["success_criteria"] = success_criteria
+    if tags:
+        payload["tags"] = tags
+    async with _client() as client:
+        r = await client.post(f"/cases/{case_id}/goals", json=payload)
+        r.raise_for_status()
+        return r.json()
+
+
+async def sync_goal_maturity(goal_id: str, repo: str | None = None):
+    params = {"repo": repo} if repo else {}
+    async with _client(timeout=60.0) as client:
+        r = await client.post(f"/goals/{goal_id}/maturity/sync", params=params)
+        r.raise_for_status()
+        return r.json()
+
+
+async def get_goal_maturity(goal_id: str):
+    async with _client() as client:
+        r = await client.get(f"/goals/{goal_id}/maturity")
+        r.raise_for_status()
+        return r.json()
+
+
+async def decompose_goal(goal_id: str):
+    async with _client() as client:
+        r = await client.post(f"/goals/{goal_id}/decompose")
+        r.raise_for_status()
+        return r.json()
+
+
+async def get_goal_reconciliation(case_id: str):
+    async with _client() as client:
+        r = await client.get(f"/cases/{case_id}/goal-reconciliation")
+        r.raise_for_status()
+        return r.json()
+
+
+async def propose_adjacent_goals(case_id: str, repo: str | None = None):
+    params = {"repo": repo} if repo else {}
+    async with _client(timeout=60.0) as client:
+        r = await client.post(f"/cases/{case_id}/goals/adjacent-proposals", params=params)
+        r.raise_for_status()
+        return r.json()
+
+
+async def run_discovery(
+    problem: str,
+    case_id: str | None = None,
+    repo: str | None = None,
+    n_fields: int = 5,
+    ingest: bool = True,
+    catalogue: bool = True,
+):
+    payload: dict = {
+        "problem": problem,
+        "n_fields": n_fields,
+        "ingest": ingest,
+        "catalogue": catalogue,
+    }
+    if case_id:
+        payload["case_id"] = case_id
+    if repo:
+        payload["repo"] = repo
+    async with _client(timeout=150.0) as client:
+        r = await client.post("/discovery", json=payload)
+        r.raise_for_status()
+        return r.json()
+
+
+async def get_discovery_fields():
+    async with _client() as client:
+        r = await client.get("/discovery/fields")
+        r.raise_for_status()
+        return r.json()
+
+
+async def list_mechanisms(decision: str | None = None):
+    params = {"decision": decision} if decision else {}
+    async with _client() as client:
+        r = await client.get("/mechanisms", params=params)
+        r.raise_for_status()
+        return r.json()
+
+
+async def decide_mechanism(mechanism_id: str, decision: str, note: str = ""):
+    async with _client() as client:
+        r = await client.post(
+            f"/discovery/mechanisms/{mechanism_id}/decision",
+            json={"decision": decision, "note": note},
+        )
+        r.raise_for_status()
+        return r.json()
+
+
+async def trigger_lab_proposal(
+    case_id: str,
+    instruction: str | None = None,
+    repo: str | None = None,
+    files: list[str] | None = None,
+):
+    payload: dict = {"case_id": case_id, "files": files or []}
+    if instruction:
+        payload["instruction"] = instruction
+    if repo:
+        payload["repo"] = repo
+    async with _client(timeout=60.0) as client:
+        r = await client.post("/repointel/lab-proposals", json=payload)
         r.raise_for_status()
         return r.json()

@@ -168,4 +168,8 @@ async def test_repointel_event_sync():
     )
     res = await repointel_event_sync(payload)
     assert res["event_received"] == "FindingDetected"
-    assert res["investigation_opened"] is True
+    assert res["flagged_for_investigation"] is True
+    # No case_id -> nothing is persisted, and the response must say so.
+    assert res["investigation_opened"] is False
+    assert res["persisted_evidence_id"] is None
+    assert "hint" in res

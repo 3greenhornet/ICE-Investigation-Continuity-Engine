@@ -19,6 +19,8 @@ MIGRATIONS = [
     "016_contradiction_uniqueness", "017_proposed_edges",
     "018_reasoning_loop", "019_plan_and_workspace",
     "020_llm_ledger_and_mechanism_lab",
+    "021_project_goals",
+    "022_goal_attributes",
 ]
 
 

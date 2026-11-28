@@ -45,6 +45,11 @@ class SerendipityConfig:
 
     # --- Diversity (MMR + decay, Mechanism C) -------------------------
     mmr_lambda: float = 0.6          # relevance vs. anti-repetition slider
+    # "mmr": greedy, penalises only the single most similar picked item.
+    # "dpp": Determinantal Point Process greedy MAP — scores redundancy
+    #        against the whole picked set (incl. this batch); same lambda dial.
+    diversity_method: str = "mmr"
+    dpp_max_pool: int = 64           # DPP runs on the top-N by relevance
     decay_base: float = 0.5          # score *= base ** k (k = recent repeats)
     reroll_penalty: float = 0.3      # same category as last 2 turns
     recent_window: int = 2          # turns a category stays "hot"
@@ -74,5 +79,7 @@ class SerendipityConfig:
         for name in ("exploit", "adjacent", "uncertainty", "entropy"):
             assert name in self.weights, f"missing slot: {name}"
         assert 0.0 <= self.mmr_lambda <= 1.0
+        assert self.diversity_method in ("mmr", "dpp"), "diversity_method must be mmr|dpp"
+        assert self.dpp_max_pool >= 1
         assert 0.0 < self.decay_base <= 1.0
         assert 0.0 <= self.entropy_pool_fraction <= 1.0

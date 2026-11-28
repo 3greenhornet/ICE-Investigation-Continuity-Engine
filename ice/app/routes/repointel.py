@@ -27,7 +27,7 @@ class CodeMaturityRequest(BaseModel):
 
 
 @router.get("/status")
-async def repointel_status():
+def repointel_status():
     """Return RepoIntel connection status and indexed repositories."""
     client = RepoIntelClient()
     return {
@@ -38,14 +38,14 @@ async def repointel_status():
 
 
 @router.get("/architecture")
-async def repointel_architecture(repo_id: Optional[str] = Query(None)):
+def repointel_architecture(repo_id: Optional[str] = Query(None)):
     """Get codebase architectural metrics (files, functions, classes, call edges, hubs)."""
     client = RepoIntelClient()
     return client.get_architecture(repo_id=repo_id)
 
 
 @router.get("/symbols")
-async def repointel_symbols(q: str = Query(..., min_length=2), limit: int = Query(10, le=50)):
+def repointel_symbols(q: str = Query(..., min_length=2), limit: int = Query(10, le=50)):
     """Search AST symbols (functions, classes, methods) matching a query."""
     client = RepoIntelClient()
     symbols = client.search_symbols(query=q, limit=limit)
@@ -53,21 +53,21 @@ async def repointel_symbols(q: str = Query(..., min_length=2), limit: int = Quer
 
 
 @router.get("/callers")
-async def repointel_callers(symbol: str = Query(..., min_length=2)):
+def repointel_callers(symbol: str = Query(..., min_length=2)):
     """Find functions that call the given symbol in the call graph."""
     client = RepoIntelClient()
     return client.get_callers(symbol_name=symbol)
 
 
 @router.get("/code")
-async def repointel_search_code(q: str = Query(..., min_length=2), limit: int = Query(5, le=25)):
+def repointel_search_code(q: str = Query(..., min_length=2), limit: int = Query(5, le=25)):
     """Search code implementations and documentation chunks."""
     client = RepoIntelClient()
     return client.search_code(query=q, limit=limit)
 
 
 @router.get("/impact/{symbol}")
-async def repointel_impact(
+def repointel_impact(
     symbol: str,
     max_depth: int = Query(5, ge=1, le=10),
     limit: int = Query(20, ge=1, le=100),
@@ -78,14 +78,14 @@ async def repointel_impact(
 
 
 @router.get("/callees/{symbol}")
-async def repointel_callees(symbol: str, limit: int = Query(20, ge=1, le=100)):
+def repointel_callees(symbol: str, limit: int = Query(20, ge=1, le=100)):
     """Find functions or classes called downstream by the given symbol."""
     client = RepoIntelClient()
     return client.get_callees(symbol_name=symbol, limit=limit)
 
 
 @router.get("/gaps")
-async def repointel_gaps(
+def repointel_gaps(
     repo_id: Optional[str] = Query(None),
     gap_type: str = Query("all"),
     limit: int = Query(50, ge=1, le=200),
@@ -96,14 +96,14 @@ async def repointel_gaps(
 
 
 @router.get("/health")
-async def repointel_health(repo_id: Optional[str] = Query(None)):
+def repointel_health(repo_id: Optional[str] = Query(None)):
     """Calculate aggregate codebase health score (0-100) and letter grade (A-D)."""
     client = RepoIntelClient()
     return client.get_health_score(repo_id=repo_id)
 
 
 @router.get("/predictions")
-async def repointel_predictions(
+def repointel_predictions(
     file_path: Optional[str] = Query(None),
     prediction_type: Optional[str] = Query(None),
     min_prob: float = Query(0.0, ge=0.0, le=1.0),
@@ -120,7 +120,7 @@ async def repointel_predictions(
 
 
 @router.get("/commits")
-async def repointel_commits(
+def repointel_commits(
     file_path: Optional[str] = Query(None),
     author: Optional[str] = Query(None),
     limit: int = Query(20, ge=1, le=100),
@@ -131,14 +131,14 @@ async def repointel_commits(
 
 
 @router.get("/hotspots")
-async def repointel_hotspots(limit: int = Query(10, ge=1, le=50)):
+def repointel_hotspots(limit: int = Query(10, ge=1, le=50)):
     """Get the most frequently changed codebase files (churn hotspots)."""
     client = RepoIntelClient()
     return client.get_git_hotspots(limit=limit)
 
 
 @router.get("/issues")
-async def repointel_issues(
+def repointel_issues(
     state: Optional[str] = Query(None),
     label: Optional[str] = Query(None),
     limit: int = Query(20, ge=1, le=100),
@@ -149,7 +149,7 @@ async def repointel_issues(
 
 
 @router.get("/pull-requests")
-async def repointel_prs(
+def repointel_prs(
     state: Optional[str] = Query(None),
     limit: int = Query(20, ge=1, le=100),
 ):
@@ -159,7 +159,7 @@ async def repointel_prs(
 
 
 @router.post("/code-maturity")
-async def repointel_code_maturity(req: CodeMaturityRequest):
+def repointel_code_maturity(req: CodeMaturityRequest):
     """Assess whether a goal's candidate code exists, is connected, or tested."""
     client = RepoIntelClient()
     assessment = client.check_goal_code_maturity(
@@ -177,7 +177,7 @@ class AdviseRequest(BaseModel):
 
 
 @router.post("/advise")
-async def repointel_advise(req: AdviseRequest):
+def repointel_advise(req: AdviseRequest):
     """Advise actionable next steps for in-progress or emerging project goals without false alarms."""
     from companion import DevelopmentCompanion
     comp = DevelopmentCompanion(case_id=req.case_id)
@@ -185,14 +185,14 @@ async def repointel_advise(req: AdviseRequest):
 
 
 @router.get("/findings/{finding_id}/explain")
-async def repointel_explain_finding(finding_id: str, repo_id: Optional[str] = Query(None)):
+def repointel_explain_finding(finding_id: str, repo_id: Optional[str] = Query(None)):
     """Retrieve detailed explanation, rule details, severity, and remediation advice for a finding."""
     client = RepoIntelClient()
     return client.explain_finding(finding_id=finding_id, repo_id=repo_id)
 
 
 @router.get("/file")
-async def repointel_file(
+def repointel_file(
     path: str = Query(..., description="File path relative to repository root"),
     start: int = Query(1, ge=1),
     end: int = Query(100, ge=1),
@@ -223,16 +223,28 @@ async def repointel_event_sync(payload: RepoIntelEventPayload):
     - Code drift triggers blast radius check.
     """
     client = RepoIntelClient()
+    severity = (payload.severity or "").upper() or None
     reaction = {
         "event_received": payload.event_type,
         "repo_id": payload.repo_id,
         "action_taken": "logged",
+        "flagged_for_investigation": False,
+        # True only when the event was actually written into a case as
+        # evidence (previously this was reported True without persisting).
+        "investigation_opened": False,
+        "persisted_evidence_id": None,
     }
 
-    if payload.event_type == "FindingDetected" and payload.severity in ("HIGH", "CRITICAL"):
+    persist = False
+    if payload.event_type == "FindingDetected" and severity in ("HIGH", "CRITICAL"):
         reaction["action_taken"] = "auto_flagged_critical_finding"
-        reaction["investigation_opened"] = True
+        reaction["flagged_for_investigation"] = True
         reaction["advice"] = f"Critical finding {payload.finding_id} flagged for immediate investigation."
+        persist = True
+    elif payload.event_type == "TestFailed":
+        reaction["action_taken"] = "flagged_test_failure"
+        reaction["flagged_for_investigation"] = True
+        persist = True
     elif payload.event_type == "RepositoryFilesChanged":
         reaction["action_taken"] = "evaluated_code_maturity"
         reaction["file_path"] = payload.file_path
@@ -240,4 +252,72 @@ async def repointel_event_sync(payload: RepoIntelEventPayload):
         reaction["action_taken"] = "checked_blast_radius"
         reaction["impact"] = client.get_impact_radius(payload.symbol, max_depth=2) if client.is_available else []
 
+    if persist and payload.case_id:
+        # State mutation goes through case_engine ingestion only (AGENTS.md
+        # four-plane rule 4); ingest_evidence emits the case_events row.
+        from case_engine.case import get_case
+        from case_engine.evidence import _create_source, ingest_evidence
+        from case_engine.exceptions import CaseNotFoundError
+
+        location = payload.file_path or "?"
+        content = (
+            f"[RepoIntel {payload.event_type}] severity={severity or 'n/a'} "
+            f"finding={payload.finding_id or '-'} symbol={payload.symbol or '-'} "
+            f"at {location}\n{payload.details.get('message', '') if isinstance(payload.details, dict) else ''}"
+        ).strip()
+        try:
+            await get_case(payload.case_id)  # raises CaseNotFoundError before any write
+            src = await _create_source(
+                payload.case_id, "TOOL",
+                f"repointel://{payload.repo_id}/{location}",
+                metadata={"tool": "repointel", "event_type": payload.event_type},
+            )
+            ev = await ingest_evidence(
+                case_id=payload.case_id,
+                content=content,
+                source_id=src.source_id,
+                evidence_type="TOOL_RESULT",
+                metadata={
+                    "tool": "repointel",
+                    "event_type": payload.event_type,
+                    "repo_id": payload.repo_id,
+                    "file_path": payload.file_path,
+                    "symbol": payload.symbol,
+                    "finding_id": payload.finding_id,
+                    "severity": severity,
+                    "details": payload.details,
+                },
+            )
+            reaction["investigation_opened"] = True
+            reaction["persisted_evidence_id"] = ev.evidence_id
+            reaction["case_id"] = payload.case_id
+        except CaseNotFoundError:
+            # Not retryable: report it instead of a 404 so RepoIntel's
+            # outbox does not replay the event forever.
+            reaction["error"] = f"case {payload.case_id} not found; event not persisted"
+        # DatabaseUnavailableError propagates -> 503, which RepoIntel treats
+        # as retryable and keeps in its outbox.
+    elif persist:
+        reaction["hint"] = "Pass case_id to persist this event as case evidence."
+
     return reaction
+
+
+class LabProposalTriggerRequest(BaseModel):
+    case_id: str
+    instruction: Optional[str] = None
+    repo: Optional[str] = None
+    files: list[str] = []
+
+
+@router.post("/lab-proposals")
+async def trigger_lab_proposal_route(payload: LabProposalTriggerRequest):
+    """Bridge ICE case findings/research gaps to a REVERSIBLE LAB_PROPOSE action."""
+    from case_engine.action import research_to_lab_proposal
+
+    return await research_to_lab_proposal(
+        case_id=payload.case_id,
+        instruction=payload.instruction,
+        repo=payload.repo,
+        files=payload.files or None,
+    )

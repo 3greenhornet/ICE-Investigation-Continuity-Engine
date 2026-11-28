@@ -22,6 +22,7 @@ import tempfile
 from typing import Optional
 
 from fastapi import APIRouter, Depends, File, Query, UploadFile
+from pydantic import BaseModel, Field
 
 from app.deps import EvidenceService, evidence_service
 from app.schemas import (
@@ -44,7 +45,9 @@ async def add_evidence_route(
 ):
     source_id = payload.source_id
     if source_id is None:
-        src = await _create_source(case_id, "HUMAN", None)
+        src = await _create_source(
+            case_id, payload.source_type or "HUMAN", payload.source_uri
+        )
         source_id = src.source_id
     ev = await svc.ingest(
         case_id=case_id,
@@ -173,3 +176,25 @@ async def evidence_chain_route(
 ):
     chain = await svc.get_chain(evidence_id)
     return ProvenanceChain(evidence_id=evidence_id, chain=chain)
+
+class WebResearchRequest(BaseModel):
+    query: str = Field(..., min_length=2, max_length=300)
+    max_results: int = Field(3, ge=1, le=10)
+    include_github: bool = False
+    ingest: bool = True
+
+
+@router.post("/cases/{case_id}/evidence/web-research")
+async def web_research_route(case_id: str, payload: WebResearchRequest):
+    """Keyless web research; ingest=true stores each result as URL evidence
+    through case_engine ingestion (emits case_events), false only previews."""
+    from case_engine.web_research import ingest_research, research
+
+    if payload.ingest:
+        from case_engine.case import get_case
+
+        await get_case(case_id)  # 404 before any network or write
+        return await ingest_research(case_id, payload.query, max_results=payload.max_results,
+                                     include_github=payload.include_github)
+    return await research(payload.query, max_results=payload.max_results,
+                          include_github=payload.include_github)

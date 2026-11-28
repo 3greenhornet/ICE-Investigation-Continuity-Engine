@@ -40,6 +40,7 @@ import json
 import logging
 import os
 import re
+import threading
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
@@ -162,6 +163,12 @@ class DiagramArtifact(BaseModel):
 # Core Code Understanding Engine
 # =====================================================================
 
+def _line_from_symbol_id(symbol_id: str) -> int:
+    """RepoIntel symbol ids look like "path/file.py::name::<line>"."""
+    tail = str(symbol_id or "").rsplit("::", 1)[-1]
+    return int(tail) if tail.isdigit() else 1
+
+
 class CodeUnderstandingEngine:
     """Dedicated Codebase Learning, Socratic Scaffolding & Notes Guide Engine.
 
@@ -199,8 +206,14 @@ class CodeUnderstandingEngine:
                 "notes": {k: v.model_dump() for k, v in self._notes.items()},
                 "knowledge": self._knowledge,
             }
-            with open(self._DATA_FILE, "w", encoding="utf-8") as f:
+            # Atomic replace: a crash or a concurrent writer can never leave a
+            # truncated/half-written store behind (it would fail to load).
+            tmp = self._DATA_FILE.with_suffix(
+                f".{os.getpid()}.{threading.get_ident()}.tmp"
+            )
+            with open(tmp, "w", encoding="utf-8") as f:
                 json.dump(payload, f, indent=2)
+            os.replace(tmp, self._DATA_FILE)
         except Exception as exc:
             logger.warning(f"Could not save code understanding store: {exc}")
 
@@ -808,7 +821,8 @@ class CodeUnderstandingEngine:
             blast_count = len(blast) if isinstance(blast, list) else blast.get("total_affected_symbols", 0)
             repo_data = {
                 "file_path": details.file_path if details else (repo_path or "unknown"),
-                "line_start": details.line_start if details else 1,
+                # CodeSymbol has no line field; RepoIntel symbol ids end in "::<line>".
+                "line_start": _line_from_symbol_id(details.id) if details else 1,
                 "callers": callers,
                 "callees": callees,
                 "blast_radius_count": blast_count,

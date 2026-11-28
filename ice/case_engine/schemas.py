@@ -267,7 +267,7 @@ class InvestigationThread(BaseModel):
 ActionType = Literal[
     "SEARCH", "RETRIEVE", "COMPARE", "INSPECT", "RUN_TEST",
     "ASK_HUMAN", "REVISIT_HYPOTHESIS", "FIND_COUNTEREVIDENCE",
-    "WAIT", "ABSTAIN",
+    "WAIT", "ABSTAIN", "LAB_PROPOSE",
 ]
 
 ApprovalClass = Literal[

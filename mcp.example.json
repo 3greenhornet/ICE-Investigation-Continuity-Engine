@@ -1,21 +1,33 @@
 {
   "mcpServers": {
     "ice": {
-      "command": "python",
-      "args": ["-m", "app.mcp.server"],
-      "cwd": "C:/dev/HARI ICE VERSIONS/hari ice by z.ai/ICE-improved/ice",
+      "command": "C:/claude.env/intel-ice-workspace/.venv/Scripts/python.exe",
+      "args": [
+        "-m",
+        "app.mcp.server"
+      ],
+      "cwd": "C:/claude.env/intel-ice-workspace/ICE-improved/ice",
       "env": {
-        "REPOINTEL_URL": "http://localhost:8000"
+        "REPOINTEL_URL": "http://localhost:8000",
+        "REPOINTEL_DB": "C:/claude.env/intel-ice-workspace/repointel-ai-2/data/repointel.db",
+        "DATABASE_URL": "postgresql://postgres:postgres@localhost:5432/ice_cognitive",
+        "ICE_ENV_FILES": "C:/claude.env/intel-ice-workspace/repointel-ai-2/.env",
+        "HF_HOME": "C:/claude.env/intel-ice-workspace/.cache/huggingface"
       }
     },
     "repointel": {
-      "command": "python",
-      "args": ["-m", "app.core.mcp.server"],
-      "cwd": "C:/Users/sreen/OneDrive/Pictures/Bharath Gitam/ai !411/repo intel ai/repointel-ai-2/backend",
+      "command": "C:/claude.env/intel-ice-workspace/.venv/Scripts/python.exe",
+      "args": [
+        "-m",
+        "app.core.mcp.server"
+      ],
+      "cwd": "C:/claude.env/intel-ice-workspace/repointel-ai-2/backend",
       "env": {
         "ICE_URL": "http://localhost:8001",
+        "REPOINTEL_DATA_DIR": "C:/claude.env/intel-ice-workspace/repointel-ai-2/data",
         "GRAPH_STORE": "sqlite",
-        "RELATIONAL_STORE": "sqlite"
+        "RELATIONAL_STORE": "sqlite",
+        "HF_HOME": "C:/claude.env/intel-ice-workspace/.cache/huggingface"
       }
     }
   }

@@ -111,6 +111,14 @@ class EvidenceCreate(BaseModel):
     # ingest-time metadata (threaded through to ingest_evidence).
     quality_score: Optional[float] = Field(None, ge=0.0, le=1.0)
     metadata: Optional[dict] = None
+    # RepoIntel integration (CHANGES.md "Cross-project integration hardening"):
+    # optional source attribution so tool-produced evidence (e.g. RepoIntel
+    # SAST findings) is not recorded as a HUMAN source. Ignored when
+    # source_id is given. Default None -> "HUMAN" (unchanged behaviour).
+    source_type: Optional[Literal[
+        "DOCUMENT", "TOOL", "HUMAN", "URL", "DATABASE", "LOG_FILE", "CODE_REPO",
+    ]] = None
+    source_uri: Optional[str] = Field(None, max_length=2000)
 
 
 class EvidenceFromURL(BaseModel):
